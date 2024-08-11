@@ -7,8 +7,8 @@ license = "mit"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-dynisland-core = { path = "../../dynisland-core" }
-dynisland-abi = { path = "../../dynisland-abi" }
+dynisland-core = { path = "../../core" }
+dynisland-abi = { path = "../../abi" }
 
 anyhow = { workspace = true }
 gtk = { workspace = true, features = ["unsafe-assume-initialized"] }

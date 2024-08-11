@@ -103,7 +103,10 @@ pub fn new(app_send: RSender<UIServerCommand>) -> RResult<ModuleType, RBoxError>
                         .send(UIServerCommand::RestartProducers(NAME.into()))
                         .unwrap();
                 }
-                None => todo!(),
+                None => {
+                    log::debug!("restart_tx was dropped, probaby a default config request");
+                    break;
+                },
             }
         }
     });
