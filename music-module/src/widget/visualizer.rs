@@ -37,7 +37,7 @@ pub fn get_visualizer(width: f32, height: f32) -> Widget {
     container.upcast()
 }
 
-/// input format: 1,2,3,4,5,6\n
+/// Input format: "1,2,3,4,5,6\n"
 pub fn parse_input(line: &str) -> [u8; 6] {
     let line: String = line.chars().filter(|c| !c.is_whitespace()).collect();
     let vec: Vec<u8> = line

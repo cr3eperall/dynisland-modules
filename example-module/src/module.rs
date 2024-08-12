@@ -25,7 +25,7 @@ use dynisland_core::{
 
 use super::{widget, NAME};
 
-/// for now this is just used to test new code
+/// For now this is just used to test new code
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ExampleConfig {
     #[serde(default)]

@@ -22,10 +22,10 @@ pub struct CurrentSongMinimalInfo {
     #[serde(rename = "artistName")]
     pub artist_name: String,
     #[serde(rename = "currentPlaybackTime")]
-    /// in seconds
+    /// In seconds
     pub current_playback_time: f64,
     #[serde(rename = "currentPlaybackProgress")]
-    /// in percentage 0.0-1.0
+    /// In percentage 0.0-1.0
     pub current_playback_progress: f32,
 }
 #[derive(serde::Deserialize, Debug)]
@@ -290,6 +290,7 @@ impl MprisPlayer {
                 width: None,
                 height: None,
             });
+        // TODO this doesn't look right
         let current_playback_time = self.get_position()?.as_secs_f64();
         let current_playback_progress = current_playback_time as f32 / duration_millis as f32;
         Ok(CurrentSongMinimalInfo {
