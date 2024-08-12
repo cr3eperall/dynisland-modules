@@ -528,8 +528,8 @@ fn setup_scrolling_label_speed_prop(
             .subscribe_to_property("scrolling-label-speed", move |new_value| {
                 let data = cast_dyn_any!(new_value, f32).unwrap();
                 // log::info!("setting speed: {}", data);
-                expanded_label.set_scroll_speed(*data, true);
-                compact_label.set_scroll_speed(*data, true);
+                expanded_label.set_config_scroll_speed(*data);
+                compact_label.set_config_scroll_speed(*data);
             })
             .unwrap();
     }

@@ -96,7 +96,7 @@ fn info_container(config: &MusicConfig, width: f32, height: f32) -> Widget {
                     song_name.set_valign(gtk::Align::Center);
                     song_name.set_hexpand(false);
                     song_name.add_css_class("song-name");
-                    song_name.set_scroll_speed(20.0, false);
+                    song_name.set_config_scroll_speed(20.0);
                 }
 
                 let artist_name = gtk::Label::builder() //TODO maybe replace with scrollable label, for now ellipses are enough

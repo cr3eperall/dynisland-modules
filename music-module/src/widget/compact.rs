@@ -53,7 +53,7 @@ pub fn get_compact(config: &MusicConfig) -> gtk::Widget {
             song_name.set_valign(gtk::Align::Center);
             song_name.set_hexpand(false);
             song_name.add_css_class("song-name");
-            song_name.set_scroll_speed(20.0, false);
+            song_name.set_config_scroll_speed(20.0);
         }
 
         let visualizer_width = width * 0.2;

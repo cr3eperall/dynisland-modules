@@ -106,7 +106,7 @@ pub fn new(app_send: RSender<UIServerCommand>) -> RResult<ModuleType, RBoxError>
                 None => {
                     log::debug!("restart_tx was dropped, probaby a default config request");
                     break;
-                },
+                }
             }
         }
     });
@@ -584,7 +584,7 @@ fn visualizer_task(
     command: &str,
     visualizer_data: Arc<Mutex<DynamicPropertyAny>>,
 ) {
-    let mut cleanup = module.producers_rt.cleanup_notifier.subscribe();
+    let mut cleanup = module.producers_rt.get_cleanup_notifier().subscribe();
     let command = command.to_string();
     module.producers_rt.handle().spawn(async move{
         let child=Command::new("sh")
