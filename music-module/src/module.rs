@@ -100,7 +100,9 @@ pub fn new(app_send: RSender<UIServerCommand>) -> RResult<ModuleType, RBoxError>
                     log::info!("searching for a new player");
                     prod_hdl.shutdown_blocking();
                     app_send
-                        .send(UIServerCommand::RestartProducers(NAME.into()))
+                        .send(UIServerCommand::RestartProducers {
+                            module_name: NAME.into(),
+                        })
                         .unwrap();
                 }
                 None => {

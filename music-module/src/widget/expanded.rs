@@ -116,7 +116,7 @@ fn info_container(config: &MusicConfig, width: f32, height: f32) -> Widget {
             music_info_container.append(&music_info_container2);
         }
 
-        let visualizer_size = height.min(width * 0.2); //TODO replace with actual visualizer
+        let visualizer_size = height.min(width * 0.2);
         let visualizer = get_visualizer(visualizer_size, visualizer_size);
         // visualizer.add_css_class("visualizer");
         // {

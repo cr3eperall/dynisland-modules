@@ -151,8 +151,6 @@ pub fn get_activity(
     });
     activity_widget.add_controller(release_gesture);
 
-    // TODO add property and config for scrolling label speed
-
     activity
 }
 

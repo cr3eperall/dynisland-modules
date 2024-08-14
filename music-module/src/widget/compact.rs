@@ -65,7 +65,7 @@ pub fn get_compact(config: &MusicConfig) -> gtk::Widget {
             .build();
         visualizer_container.add_css_class("visualizer-container");
         {
-            let visualizer_size = height.min(visualizer_width); //TODO replace with actual visualizer
+            let visualizer_size = height.min(visualizer_width);
             let visualizer = get_visualizer(visualizer_size, visualizer_size);
             visualizer_container.append(&visualizer);
         }

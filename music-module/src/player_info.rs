@@ -30,7 +30,7 @@ pub struct CurrentSongMinimalInfo {
 }
 #[derive(serde::Deserialize, Debug)]
 pub struct CurrentSongArtwork {
-    pub url: String, //TODO should be path
+    pub url: String,
     pub width: Option<u64>,
     pub height: Option<u64>,
 }
@@ -229,7 +229,6 @@ impl MprisPlayer {
         Ok(())
     }
     pub fn get_length(&self) -> Result<Duration> {
-        //TODO add fallback to cider2 api
         let metadata = self.get_metadata()?;
         let length = match metadata.get("mpris:length") {
             Some(length) => length,
