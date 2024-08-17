@@ -91,6 +91,7 @@ impl UiUpdate {
         let activate = (update.to_activate, update.to_deactivate);
         let show = (update.to_show, update.to_hide);
         let move_this = (update.move_this, update.to_move_this_after);
+        let mut can_hide = true;
         match activate {
             (Some(to_activate), None) => {
                 let widget = widget_map.get(&to_activate).unwrap();
@@ -106,6 +107,7 @@ impl UiUpdate {
                 let widget = widget_map.get(&to_deactivate).unwrap();
                 if widget.mode() != ActivityMode::Minimal {
                     widget.set_mode(ActivityMode::Minimal);
+                    can_hide = false;
                 }
             }
             _ => {}
@@ -120,7 +122,11 @@ impl UiUpdate {
             (None, Some(to_hide)) => {
                 let widget = widget_map.get(&to_hide).unwrap();
                 widget.add_css_class("hidden");
-                widget.size_allocate(&gdk::Rectangle::new(0, 0, 50, 40), 0);
+                if can_hide {
+                    widget.set_visible(false);
+                } else {
+                    widget.size_allocate(&gdk::Rectangle::new(0, 0, 50, 40), 0);
+                }
             }
             _ => {}
         }
