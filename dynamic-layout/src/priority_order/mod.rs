@@ -7,6 +7,8 @@ pub mod cycle_order;
 pub mod ui_update;
 
 pub trait WidgetOrderManager: Debug + Default {
+    fn is_active(&self, id: &ActivityIdentifier) -> bool;
+    fn is_shown(&self, id: &ActivityIdentifier) -> bool;
     fn update_config_and_reset(&mut self, max_active: u16, max_shown: u16);
     /// NOTE: `id` is implicitly hidden and deactivated if UiUpdate is None
     fn add(&mut self, id: &ActivityIdentifier) -> UiUpdate;

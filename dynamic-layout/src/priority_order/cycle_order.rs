@@ -23,6 +23,9 @@ impl CycleOrder {
             ..Default::default()
         }
     }
+}
+
+impl WidgetOrderManager for CycleOrder {
     fn is_active(&self, id: &ActivityIdentifier) -> bool {
         let order_idx = match self.order.iter().position(|tid| **tid == *id) {
             Some(idx) => idx,
@@ -31,6 +34,7 @@ impl CycleOrder {
         self.active_offset as usize <= order_idx
             && order_idx < (self.active + self.active_offset).into()
     }
+
     fn is_shown(&self, id: &ActivityIdentifier) -> bool {
         let order_idx = match self.order.iter().position(|tid| **tid == *id) {
             Some(idx) => idx,
@@ -38,9 +42,6 @@ impl CycleOrder {
         };
         order_idx < self.max_shown.into()
     }
-}
-
-impl WidgetOrderManager for CycleOrder {
     fn update_config_and_reset(&mut self, max_active: u16, max_shown: u16) {
         let max_shown = if max_shown < max_active {
             max_active + 1
@@ -89,7 +90,7 @@ impl WidgetOrderManager for CycleOrder {
         if self.is_active(id) {
             self.active -= 1;
         } else if idx < self.active_offset as usize {
-            //is before active
+            // is before active
             self.active_offset -= 1;
         }
 
@@ -160,36 +161,6 @@ impl WidgetOrderManager for CycleOrder {
                         .unwrap(),
                 );
             }
-            /* // has the same logic but is easier to understend
-            if self.active<self.max_active{
-                    if idx<=self.active_offset.into(){
-                        // it's left of the activated ones
-                        let act=self.order.remove(idx).unwrap();
-                        self.active_offset-=1;
-                        self.order.insert(self.active_offset.into(), act);
-                    }else{
-                        // it's right of the activated ones
-                        let act=self.order.remove(idx).unwrap();
-                        self.order.insert((self.active_offset+self.active).into(), act);
-                    }
-                // it's near the activated ones
-                self.active+=1;
-            }else{
-                // an activity needs to be deactivated
-                if idx<=self.active_offset.into(){
-                    // it's left of the activated ones
-                    let act=self.order.remove(idx).unwrap();
-                    self.active_offset-=1;
-                    self.order.insert(self.active_offset.into(), act);
-                    update.hide(self.order.get((self.active_offset+self.active).into()).unwrap());
-                }else{
-                    // it's right of the activated ones
-                    let act=self.order.remove(idx).unwrap();
-                    self.order.insert((self.active_offset+self.active).into(), act);
-                    self.active_offset=+1;
-                    update.hide(self.order.get((self.active_offset-1).into()).unwrap());
-                }
-            }*/
         } else {
             todo!("for now a widget needs to be already shown to be activated");
         }
@@ -331,137 +302,3 @@ impl WidgetOrderManager for CycleOrder {
     //     todo!()
     // }
 }
-
-/* Old implementation
-/// add to the back: widget is not shown if there are already max_activities
-    ///
-    /// NOTE: `id` is implicitly hidden and deactivated if UiUpdate is None
-    fn add(&mut self, id: &ActivityIdentifier) -> UiUpdate {
-        let mut update = UiUpdate::default();
-        if self.priority.contains(id) {
-            return update
-        };
-        self.priority.push_back(id.clone());
-        self.order.push_back(id.clone());
-        if self.priority.len() > self.max_activities.into() {
-            // not shown => not active
-            return UiUpdate::default();
-        }
-        // // is shown
-        update.show(id);
-        if self.active >= self.max_active {
-            // is shown but not active
-            return update;
-        }
-        update.activate(id);
-        // is shown and active
-        self.active += 1;
-        update
-    }
-
-    /// remove activity and show the next in the priority if this was shown
-    ///
-    /// NOTE: `id` is implicitly deactivated and hidden
-    fn remove(&mut self, id: &ActivityIdentifier) -> UiUpdate {
-        let mut update = UiUpdate::default();
-        let priority_idx = match self.priority.iter().position(|tid| tid == id) {
-            Some(idx) => idx,
-            None => return update,
-        };
-        let order_idx = match self.order.iter().position(|tid| tid == id) {
-            Some(idx) => idx,
-            None => return update,
-        };
-        self.priority.remove(priority_idx);
-        self.order.remove(order_idx);
-        if priority_idx < self.active.into() {
-            // was active
-            // update.deactivate(id);
-            self.active -= 1;
-        }
-        if priority_idx < self.max_activities.into() {
-            // was shown
-            // so show next in priority
-            if let Some(a) = self.priority.get((self.max_activities-1).into()) {
-                update.show(a);
-            }
-        }
-        update
-    }
-
-    ///
-    ///
-    /// NOTE: `id` is implicitly shown and activated
-    fn activate(&mut self, id: &ActivityIdentifier) -> UiUpdate {
-        let mut update = UiUpdate::default();
-        let priority=&mut self.priority;
-        let priority_idx = match priority.iter().position(|tid| tid == id) {
-            Some(idx) => idx,
-            None => return update,
-        };
-        if priority_idx < self.active.into() {
-            //already active
-            return update;
-        }
-        // wasn't active
-        if self.active<self.max_active{
-            // there is still space for an active widget without deactivating another
-            self.active += 1;
-            let idx=priority.remove(priority_idx).unwrap();
-            priority.push_front(idx);
-            return update;
-        }
-        // a widget needs to be deactivated
-        if priority_idx >= self.max_activities.into(){
-            // was hidden
-            if let Some(a) = priority.get((self.max_activities-1).into()) {
-                update.hide(a)
-            }
-            update.deactivate(priority.get((self.active-1).into()).unwrap());
-            // put at the top
-            let idx=priority.remove(priority_idx).unwrap();
-            priority.push_front(idx);
-        } else {
-            // was shown
-
-            if let Some(a) = priority.get(priority_idx) {
-                update.deactivate(a)
-            }
-        }
-
-        update
-    }
-
-    /// NOTE: doesn't activate the widget that goes up the priority
-    ///
-    /// NOTE: `id` is implicitly deactivated but not hidden
-    fn deactivate(&mut self, id: &ActivityIdentifier) -> UiUpdate {
-        let update = UiUpdate::default();
-        let priority_idx = match self.priority.iter().position(|tid| tid == id) {
-            Some(idx) => idx,
-            None => return update,
-        };
-        if priority_idx >= self.active.into() {
-            // wasn't active
-        }else {
-            // was active
-            let idx=self.priority.remove(priority_idx).unwrap();
-            self.active-=1;
-            self.priority.insert(self.max_active.into(), idx);
-        }
-        update
-    }
-
-    fn update_config(&mut self, config: &DynamicLayoutConfig) -> Vec<UiUpdate> {
-        let update = vec![];
-        let max_activities = if config.max_active>=config.max_activities{
-            config.max_active+1
-        }else{
-            config.max_activities
-        };
-        self.max_activities=max_activities;
-        self.max_active=config.max_active;
-        self.active=self.active.min(self.max_active);
-        update
-    }
-    */

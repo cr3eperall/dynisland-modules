@@ -1,6 +1,10 @@
-use std::{fmt::Display, rc::Rc};
+use std::{collections::HashMap, fmt::Display, rc::Rc};
 
 use dynisland_abi::module::ActivityIdentifier;
+use dynisland_core::graphics::activity_widget::{
+    boxed_activity_mode::ActivityMode, ActivityWidget,
+};
+use gtk::prelude::*;
 
 #[derive(Debug, Default)]
 pub struct UiUpdate {
@@ -70,6 +74,67 @@ impl UiUpdate {
             to_hide,
             move_this: self.to_move_this,
             to_move_this_after: self.to_move_this_after,
+        }
+    }
+
+    pub fn apply(
+        self,
+        widget_map: std::cell::Ref<HashMap<ActivityIdentifier, ActivityWidget>>,
+        container: &gtk::Box,
+        current_activity: &ActivityIdentifier,
+    ) {
+        if self.is_empty() {
+            return;
+        }
+        log::trace!("this: {current_activity}, {self}");
+        let update = self.all();
+        let activate = (update.to_activate, update.to_deactivate);
+        let show = (update.to_show, update.to_hide);
+        let move_this = (update.move_this, update.to_move_this_after);
+        match activate {
+            (Some(to_activate), None) => {
+                let widget = widget_map.get(&to_activate).unwrap();
+                if widget.mode() == ActivityMode::Minimal {
+                    // if let Some(send) = send_activate {
+                    //     let _ = send.send((*to_activate).clone());
+                    // } else {
+                    widget.set_mode(ActivityMode::Compact);
+                    // }
+                }
+            }
+            (None, Some(to_deactivate)) => {
+                let widget = widget_map.get(&to_deactivate).unwrap();
+                if widget.mode() != ActivityMode::Minimal {
+                    widget.set_mode(ActivityMode::Minimal);
+                }
+            }
+            _ => {}
+        }
+        match show {
+            (Some(to_show), None) => {
+                let widget = widget_map.get(&to_show).unwrap();
+                widget.remove_css_class("hidden");
+                widget.set_visible(true);
+                widget.queue_resize();
+            }
+            (None, Some(to_hide)) => {
+                let widget = widget_map.get(&to_hide).unwrap();
+                widget.add_css_class("hidden");
+                widget.size_allocate(&gdk::Rectangle::new(0, 0, 50, 40), 0);
+            }
+            _ => {}
+        }
+        match move_this {
+            (true, None) => {
+                let this_wid = widget_map.get(current_activity).unwrap();
+                container.reorder_child_after(this_wid, None::<&gtk::Widget>);
+            }
+            (true, Some(to_move_after)) => {
+                let this_wid = widget_map.get(current_activity).unwrap();
+                let other_wid = widget_map.get(&to_move_after);
+                container.reorder_child_after(this_wid, other_wid);
+            }
+            _ => {}
         }
     }
 }
