@@ -17,24 +17,19 @@ use log::Level;
 use ron::ser::PrettyConfig;
 use serde::{Deserialize, Serialize};
 
-use dynisland_core::{
-    base_module::{BaseModule, ProducerRuntime},
-    graphics::activity_widget::boxed_activity_mode::ActivityMode,
-};
+use dynisland_core::base_module::{BaseModule, ProducerRuntime};
 //FIXME fix logging
 
 use super::{widget, NAME};
 
 /// For now this is just used to test new code
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(default)]
 pub struct ExampleConfig {
-    #[serde(default)]
+    pub number_of_widgets: u32,
     pub int: i32,
-    #[serde(default)]
     pub string: String,
-    #[serde(default)]
     pub vec: Vec<String>,
-    #[serde(default)]
     pub duration: u64,
 }
 
@@ -42,6 +37,7 @@ pub struct ExampleConfig {
 impl Default for ExampleConfig {
     fn default() -> Self {
         Self {
+            number_of_widgets: 1,
             int: 0,
             string: String::from("Example1"),
             vec: vec![String::from("Example2"), String::from("Example3")],
@@ -61,7 +57,6 @@ pub fn new(app_send: RSender<UIServerCommand>) -> RResult<ModuleType, RBoxError>
 
     let base_module = BaseModule::new(NAME, app_send);
     let this = ExampleModule {
-        // name: "ExampleModule".to_string(),
         base_module,
         producers_rt: ProducerRuntime::new(),
         config: ExampleConfig::default(),
@@ -72,14 +67,24 @@ pub fn new(app_send: RSender<UIServerCommand>) -> RResult<ModuleType, RBoxError>
 impl SabiModule for ExampleModule {
     #[allow(clippy::let_and_return)]
     fn init(&self) {
+        let widget_count = self.config.number_of_widgets;
         let base_module = self.base_module.clone();
         glib::MainContext::default().spawn_local(async move {
-            //create activity
-            let act = widget::get_activity(base_module.prop_send(), NAME, "exampleActivity1");
-
+            let act = widget::get_activity(base_module.prop_send(), NAME, "exampleActivity0");
             //register activity and data producer
             base_module.register_activity(act).unwrap();
             base_module.register_producer(producer);
+            for i in 1..widget_count {
+                //create activity
+                let act = widget::get_activity(
+                    base_module.prop_send(),
+                    NAME,
+                    format!("exampleActivity{}", i).as_str(),
+                );
+
+                //register activity and data producer
+                base_module.register_activity(act).unwrap();
+            }
         });
         let fallback_provider = gtk::CssProvider::new();
         let css = grass::from_string(include_str!("../default.scss"), &grass::Options::default())
@@ -142,17 +147,14 @@ fn producer(module: &ExampleModule) {
     //TODO the locks shouldn't be blocking
     let registered_activities = module.base_module.registered_activities();
     let registered_activities_lock = registered_activities.blocking_lock();
-    let mode = registered_activities_lock
-        .get_property_any_blocking("exampleActivity1", "mode")
-        .unwrap();
     let label = registered_activities_lock
-        .get_property_any_blocking("exampleActivity1", "comp-label")
+        .get_property_any_blocking("exampleActivity0", "comp-label")
         .unwrap();
     let scrolling_text = registered_activities_lock
-        .get_property_any_blocking("exampleActivity1", "scrolling-label-text")
+        .get_property_any_blocking("exampleActivity0", "scrolling-label-text")
         .unwrap();
     let rolling_char = registered_activities_lock
-        .get_property_any_blocking("exampleActivity1", "rolling-char")
+        .get_property_any_blocking("exampleActivity0", "rolling-char")
         .unwrap();
     // label.blocking_lock().set(config.string.clone()).unwrap();
 
@@ -171,7 +173,6 @@ fn producer(module: &ExampleModule) {
     // debug!("starting task");
     module.producers_rt.handle().spawn(async move {
         // debug!("task started");
-        mode.lock().await.set(ActivityMode::Minimal).unwrap();
         loop {
             rolling_char.lock().await.set('0').unwrap();
             tokio::time::sleep(tokio::time::Duration::from_millis(config.duration)).await;

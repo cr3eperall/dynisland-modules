@@ -41,9 +41,6 @@ pub fn get_activity(
     // activity.set_activity_widget(activity_widget.clone());
 
     activity
-        .add_dynamic_property("mode", ActivityMode::Minimal)
-        .unwrap();
-    activity
         .add_dynamic_property("comp-label", "compact".to_string())
         .unwrap();
     activity
@@ -55,7 +52,7 @@ pub fn get_activity(
     activity
         .subscribe_to_property("scrolling-label-text", move |new_value| {
             let real_value = cast_dyn_any!(new_value, String).unwrap();
-            log::debug!("text changed:{real_value}");
+            log::trace!("text changed:{real_value}");
             minimal_cl
                 .downcast_ref::<gtk::Box>()
                 .unwrap()
@@ -68,79 +65,63 @@ pub fn get_activity(
         })
         .unwrap();
 
-    let mode = activity.get_property_any("mode").unwrap();
+    let primary_gesture = gtk::GestureClick::new();
+    primary_gesture.set_button(gdk::BUTTON_PRIMARY);
 
-    let press_gesture = gtk::GestureClick::new();
-    press_gesture.set_button(gdk::BUTTON_PRIMARY);
-
-    let m1 = mode.clone();
-    press_gesture.connect_released(move |_gest, _, _, _| {
-        // debug!("primary");
-        // gest.set_state(gtk::EventSequenceState::Claimed);
-        let m1 = m1.clone();
-        glib::MainContext::default().spawn_local(async move {
-            let mode_g = m1.lock().await;
-            let mode = *cast_dyn_any!(mode_g.get(), ActivityMode).unwrap();
-            drop(mode_g);
-
-            match mode {
-                ActivityMode::Minimal => {
-                    m1.lock().await.set(ActivityMode::Compact).unwrap();
-                }
-                ActivityMode::Compact => {
-                    m1.lock().await.set(ActivityMode::Expanded).unwrap();
-                }
-                ActivityMode::Expanded => {
-                    m1.lock().await.set(ActivityMode::Overlay).unwrap();
-                }
-                ActivityMode::Overlay => {
-                    m1.lock().await.set(ActivityMode::Minimal).unwrap();
-                }
+    primary_gesture.connect_released(move |gest, _, x, y| {
+        let aw = gest.widget().downcast::<ActivityWidget>().unwrap();
+        if x < 0.0
+            || y < 0.0
+            || x > aw.size(gtk::Orientation::Horizontal).into()
+            || y > aw.size(gtk::Orientation::Vertical).into()
+        {
+            return;
+        }
+        match aw.mode() {
+            ActivityMode::Minimal => {
+                // m1.lock().await.set(ActivityMode::Compact).unwrap();
             }
-        });
+            ActivityMode::Compact => {
+                aw.set_mode(ActivityMode::Expanded);
+            }
+            ActivityMode::Expanded => {
+                aw.set_mode(ActivityMode::Overlay);
+            }
+            ActivityMode::Overlay => {
+                // m1.lock().await.set(ActivityMode::Minimal).unwrap();
+            }
+        }
     });
 
-    activity_widget.add_controller(press_gesture);
+    activity_widget.add_controller(primary_gesture);
 
-    let m1 = mode.clone();
-    let release_gesture = GestureClick::new();
-    release_gesture.set_button(gdk::BUTTON_SECONDARY);
-    release_gesture.connect_released(move |_gest, _, _, _| {
-        // debug!("secondary");
-        // gest.set_state(gtk::EventSequenceState::Claimed);
-        let m1 = m1.clone();
-        glib::MainContext::default().spawn_local(async move {
-            let mode_g = m1.lock().await;
-            let mode = *cast_dyn_any!(mode_g.get(), ActivityMode).unwrap();
-            drop(mode_g);
-
-            match mode {
-                ActivityMode::Minimal => {
-                    log::warn!("Don't. It will crash and idk why");
-                    m1.lock().await.set(ActivityMode::Overlay).unwrap();
-                }
-                ActivityMode::Compact => {
-                    m1.lock().await.set(ActivityMode::Minimal).unwrap();
-                }
-                ActivityMode::Expanded => {
-                    m1.lock().await.set(ActivityMode::Compact).unwrap();
-                }
-                ActivityMode::Overlay => {
-                    m1.lock().await.set(ActivityMode::Expanded).unwrap();
-                }
+    let secondary_gesture = GestureClick::new();
+    secondary_gesture.set_button(gdk::BUTTON_SECONDARY);
+    secondary_gesture.connect_released(move |gest, _, x, y| {
+        let aw = gest.widget().downcast::<ActivityWidget>().unwrap();
+        if x < 0.0
+            || y < 0.0
+            || x > aw.size(gtk::Orientation::Horizontal).into()
+            || y > aw.size(gtk::Orientation::Vertical).into()
+        {
+            return;
+        }
+        match aw.mode() {
+            ActivityMode::Minimal => {
+                // m1.lock().await.set(ActivityMode::Compact).unwrap();
             }
-        });
+            ActivityMode::Compact => {
+                aw.set_mode(ActivityMode::Minimal);
+            }
+            ActivityMode::Expanded => {
+                aw.set_mode(ActivityMode::Compact);
+            }
+            ActivityMode::Overlay => {
+                aw.set_mode(ActivityMode::Expanded);
+            }
+        }
     });
-
-    activity_widget.add_controller(release_gesture);
-
-    //set mode when updated
-    activity
-        .subscribe_to_property("mode", move |new_value| {
-            let real_value = cast_dyn_any!(new_value, ActivityMode).unwrap();
-            activity_widget.set_mode(real_value);
-        })
-        .unwrap();
+    activity_widget.add_controller(secondary_gesture);
 
     let c1 = compact.clone();
     activity
@@ -242,7 +223,7 @@ fn get_compact() -> gtk::Widget {
     let compact = gtk::Box::builder()
         .orientation(gtk::Orientation::Horizontal)
         .height_request(40)
-        .width_request(280)
+        .width_request(220)
         .valign(gtk::Align::Center)
         .halign(gtk::Align::Center)
         .vexpand(false)

@@ -4,7 +4,10 @@ pub async fn get_album_art_from_url(url: &str) -> Option<Vec<u8>> {
     // log::warn!("getting album art");
     let vec: Vec<u8>;
     if url.starts_with("http") {
-        //TODO better check for http or https
+        // for some fucking reason Cider 2.5.0 doesn't follow the mpris spec so i have to do this
+        // TODO remove if they decide to fix it
+        let url = url.replace("{f}", "png");
+        // TODO better check for http or https
         vec = reqwest::Client::new()
             .get(url)
             .send()
