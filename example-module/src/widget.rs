@@ -188,7 +188,8 @@ fn get_minimal() -> gtk::Widget {
         .homogeneous(false)
         .build();
 
-    let scroll_label = ScrollingLabel::new(Some("VDsdvzdfvzcxvvzxcvzcd"));
+    let scroll_label = ScrollingLabel::new();
+    scroll_label.label().set_text("VDsdvzdfvzcxvvzxcvzcd");
     scroll_label.set_hexpand(false);
     scroll_label.set_vexpand(false);
     scroll_label.set_valign(gtk::Align::Center);

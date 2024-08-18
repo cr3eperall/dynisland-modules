@@ -88,7 +88,7 @@ fn info_container(config: &MusicConfig, width: f32, height: f32) -> Widget {
                 .build();
             music_info_container2.add_css_class("info-names2");
             {
-                let song_name = ScrollingLabel::new(None);
+                let song_name = ScrollingLabel::new();
                 {
                     song_name.label().set_text("Song name");
                     song_name.set_width_request((width * 0.45) as i32);

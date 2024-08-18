@@ -44,7 +44,7 @@ pub fn get_compact(config: &MusicConfig) -> gtk::Widget {
             album_art.append(&image);
         }
 
-        let song_name = ScrollingLabel::new(None);
+        let song_name = ScrollingLabel::new();
         {
             song_name.label().set_text("Song name");
             song_name.set_width_request((width * 0.6) as i32);
