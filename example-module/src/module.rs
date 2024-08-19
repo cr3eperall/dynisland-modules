@@ -90,11 +90,13 @@ impl SabiModule for ExampleModule {
         let css = grass::from_string(include_str!("../default.scss"), &grass::Options::default())
             .unwrap();
         fallback_provider.load_from_string(&css);
-        gtk::style_context_add_provider_for_display(
-            &gdk::Display::default().unwrap(),
-            &fallback_provider,
-            gtk::STYLE_PROVIDER_PRIORITY_SETTINGS,
-        );
+        glib::MainContext::default().spawn_local(async move {
+            gtk::style_context_add_provider_for_display(
+                &gdk::Display::default().unwrap(),
+                &fallback_provider,
+                gtk::STYLE_PROVIDER_PRIORITY_SETTINGS,
+            );
+        });
     }
 
     #[allow(clippy::let_and_return)]
@@ -156,18 +158,6 @@ fn producer(module: &ExampleModule) {
     let rolling_char = registered_activities_lock
         .get_property_any_blocking("exampleActivity0", "rolling-char")
         .unwrap();
-    // label.blocking_lock().set(config.string.clone()).unwrap();
-
-    // let activity = Rc::new(Mutex::new(Self::get_activity(
-    //     _prop_send.clone(),
-    //     "exampleActivity2",
-    // )));
-    // _app_send
-    //     .send(UIServerCommand::AddActivity(
-    //         "ExampleModule".to_string(),
-    //         activity,
-    //     ))
-    //     .unwrap();
 
     let config = config.clone();
     // debug!("starting task");
@@ -188,65 +178,12 @@ fn producer(module: &ExampleModule) {
             scrolling_text
                 .lock()
                 .await
-                .set(
-                    "Hello long text, very long text. Hello long text, very long text.    end"
-                        .to_string(),
-                )
+                .set("Scrolling Label but longer".to_string())
                 .unwrap();
-            tokio::time::sleep(tokio::time::Duration::from_millis(12000)).await;
+            tokio::time::sleep(tokio::time::Duration::from_millis(17000)).await;
 
-            scrolling_text
-                .lock()
-                .await
-                .set("Hello shorterer e e e e text e.    end".to_string())
-                .unwrap();
+            scrolling_text.lock().await.set("Hi".to_string()).unwrap();
             tokio::time::sleep(tokio::time::Duration::from_millis(4000)).await;
-            // mode.lock().await.set(ActivityMode::Minimal).unwrap();
-            // tokio::time::sleep(tokio::time::Duration::from_millis(2000)).await;
-
-            // mode.lock().await.set(ActivityMode::Compact).unwrap();
-            // tokio::time::sleep(tokio::time::Duration::from_millis(2500)).await;
-            // let old_label_val;
-            // {
-            //     let label_val = label.lock().await;
-            //     let str_val: &String = cast_dyn_any!(label_val.get(), String).unwrap();
-            //     old_label_val = str_val.clone();
-            // }
-
-            // tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
-            // label.lock().await.set("sdkjvksdv1 tryt etvcbssrfh".to_string()).unwrap();
-            // tokio::time::sleep(tokio::time::Duration::from_millis(1200)).await;
-            // label.lock().await.set("fghn".to_string()).unwrap();
-            // tokio::time::sleep(tokio::time::Duration::from_millis(1200)).await;
-
-            // label.lock().await.set(old_label_val).unwrap();
-            // tokio::time::sleep(tokio::time::Duration::from_millis(1200)).await;
-
-            // prop_send
-            //     .send(PropertyUpdate {
-            //         activity_id: "*".to_string(),
-            //         property_name: "mode".to_string(),
-            //         value: Box::new(ActivityMode::Compact),
-            //     })
-            //     .unwrap();
-            // mode.lock().await.set(ActivityMode::Expanded).unwrap();
-
-            // tokio::time::sleep(tokio::time::Duration::from_millis(5000)).await;
-            // prop_send
-            //     .send(PropertyUpdate {
-            //         activity_id: "*".to_string(),
-            //         property_name: "mode".to_string(),
-            //         value: Box::new(ActivityMode::Expanded),
-            //     })
-            //     .unwrap();
-            // mode.lock().await.set(ActivityMode::Compact).unwrap();
-            // tokio::time::sleep(tokio::time::Duration::from_millis(5000)).await;
-            // mode.lock().await.set(ActivityMode::Expanded).unwrap();
-            // tokio::time::sleep(tokio::time::Duration::from_millis(5000)).await;
-            // mode.lock().await.set(ActivityMode::Overlay).unwrap();
-            // tokio::time::sleep(tokio::time::Duration::from_millis(5000)).await;
-            // mode.lock().await.set(ActivityMode::Expanded).unwrap();
-            // tokio::time::sleep(tokio::time::Duration::from_millis(5000)).await;
         }
     });
 }

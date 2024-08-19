@@ -146,11 +146,13 @@ impl SabiModule for MusicModule {
         let css = grass::from_string(include_str!("../default.scss"), &grass::Options::default())
             .unwrap();
         fallback_provider.load_from_string(&css);
-        gtk::style_context_add_provider_for_display(
-            &gdk::Display::default().unwrap(),
-            &fallback_provider,
-            gtk::STYLE_PROVIDER_PRIORITY_SETTINGS,
-        );
+        glib::MainContext::default().spawn_local(async move {
+            gtk::style_context_add_provider_for_display(
+                &gdk::Display::default().unwrap(),
+                &fallback_provider,
+                gtk::STYLE_PROVIDER_PRIORITY_SETTINGS,
+            );
+        });
     }
 
     fn update_config(&mut self, config: RString) -> RResult<(), RBoxError> {
