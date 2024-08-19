@@ -253,6 +253,8 @@ impl<Ord: WidgetOrderManager + 'static> SabiLayoutManager for DynamicLayout<Ord>
                     }
                 },
             );
+        } else {
+            log::warn!("activity-notification: no activity named: {activity}");
         }
     }
 }
