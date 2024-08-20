@@ -19,58 +19,35 @@ use dynisland_core::graphics::activity_widget::{
     boxed_activity_mode::ActivityMode, ActivityWidget,
 };
 use env_logger::Env;
-use gdk::prelude::*;
 use glib::{Cast, SourceId};
-use gtk::{prelude::*, EventController, StateFlags};
+use gtk::prelude::*;
 use log::Level;
 use ron::ser::PrettyConfig;
-use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use crate::{
+    config::{ActivityMatch, DynamicLayoutConfig},
     priority_order::{cycle_order::CycleOrder, WidgetOrderManager},
-    window_position::WindowPosition,
 };
 
 // TODO set activity order at start
 pub struct DynamicLayout<Ord: WidgetOrderManager> {
-    app: gtk::Application,
-    widget_map: Rc<RefCell<HashMap<ActivityIdentifier, ActivityWidget>>>,
-    cancel_minimize: Rc<RefCell<HashMap<ActivityIdentifier, SourceId>>>,
-    container: Option<gtk::Box>,
-    priority: Rc<RefCell<Ord>>,
-    activate_widget: (
+    pub(crate) app: gtk::Application,
+    // widget_map: Rc<RefCell<HashMap<ActivityIdentifier, ActivityWidget>>>,
+    pub(crate) cancel_minimize: Rc<RefCell<HashMap<ActivityIdentifier, SourceId>>>,
+    // container: Option<gtk::Box>,
+    pub(crate) order_manager: Rc<RefCell<Ord>>,
+    pub(crate) activity_order: Vec<ActivityMatch>,
+    pub(crate) activate_widget: (
         UnboundedSender<ActivityIdentifier>,
         Option<UnboundedReceiver<ActivityIdentifier>>,
     ),
-    deactivate_widget: (
+    pub(crate) deactivate_widget: (
         UnboundedSender<ActivityIdentifier>,
         Option<UnboundedReceiver<ActivityIdentifier>>,
     ),
-    cycle_channel: (UnboundedSender<bool>, Option<UnboundedReceiver<bool>>),
-    config: DynamicLayoutConfig,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(default)]
-pub struct DynamicLayoutConfig {
-    // TODO add layer
-    pub(super) window_position: WindowPosition,
-    // orientation_horizontal: bool,
-    pub(super) auto_minimize_timeout: i32,
-    pub(super) max_activities: u16,
-    pub(super) max_active: u16,
-}
-impl Default for DynamicLayoutConfig {
-    fn default() -> Self {
-        Self {
-            // orientation_horizontal: true,
-            window_position: WindowPosition::default(),
-            auto_minimize_timeout: 5000,
-            max_activities: 3,
-            max_active: 1,
-        }
-    }
+    pub(crate) cycle_channel: (UnboundedSender<bool>, Option<UnboundedReceiver<bool>>),
+    pub(crate) config: DynamicLayoutConfig,
 }
 
 #[sabi_extern_fn]
@@ -84,10 +61,11 @@ pub fn new(app: SabiApplication) -> RResult<LayoutManagerType, RBoxError> {
     let config = DynamicLayoutConfig::default();
     let this = DynamicLayout {
         app,
-        widget_map: Rc::new(RefCell::new(HashMap::new())),
+        // widget_map: Rc::new(RefCell::new(HashMap::new())),
         cancel_minimize: Rc::new(RefCell::new(HashMap::new())),
-        container: None,
-        priority: Rc::new(RefCell::new(CycleOrder::new(&config))),
+        // container: None,
+        order_manager: Rc::new(RefCell::new(CycleOrder::new(&config))),
+        activity_order: Vec::new(),
         activate_widget: (channel.0, Some(channel.1)),
         deactivate_widget: (channel1.0, Some(channel1.1)),
         cycle_channel: (channel2.0, Some(channel2.1)),
@@ -116,6 +94,7 @@ impl<Ord: WidgetOrderManager + 'static> SabiLayoutManager for DynamicLayout<Ord>
                 log::error!("Failed to parse config into struct: {:#?}", err);
             }
         }
+        self.activity_order = self.config.get_order();
         log::debug!("current config: {:#?}", self.config);
 
         self.configure_container();
@@ -126,25 +105,16 @@ impl<Ord: WidgetOrderManager + 'static> SabiLayoutManager for DynamicLayout<Ord>
         if old_max_active != self.config.max_active
             || old_max_activities != self.config.max_activities
         {
-            // deactivate all the activities
-            self.priority
+            self.order_manager
                 .borrow_mut()
-                .update_config_and_reset(self.config.max_active, self.config.max_activities);
-            if let Some(container) = &self.container {
-                let mut count = 0;
-                let mut child = container.first_child();
-                while let Some(widget) = child {
-                    child = widget.next_sibling();
-                    widget.set_visible(count < self.config.max_activities);
-                    let act = widget.clone().downcast::<ActivityWidget>().unwrap();
-                    act.set_mode(ActivityMode::Minimal);
-                    count += 1;
-                }
-            }
+                .update_config(self.config.max_active, self.config.max_activities);
+        }
+        if self.config.reorder_on_reload {
+            self.update_activity_order();
         }
 
-        for widget_id in self.widget_map.borrow().keys() {
-            self.configure_widget(widget_id);
+        for widget_id in self.order_manager.borrow().list_activities() {
+            self.configure_widget(&widget_id);
         }
 
         ROk(())
@@ -159,7 +129,13 @@ impl<Ord: WidgetOrderManager + 'static> SabiLayoutManager for DynamicLayout<Ord>
     }
 
     fn add_activity(&mut self, activity_id: &ActivityIdentifier, widget: SabiWidget) {
-        if self.widget_map.borrow().contains_key(activity_id) {
+        if self
+            .order_manager
+            .borrow()
+            .get_widget_map()
+            .borrow()
+            .contains_key(activity_id)
+        {
             return;
         }
         let widget: gtk::Widget = widget.try_into().unwrap();
@@ -172,27 +148,27 @@ impl<Ord: WidgetOrderManager + 'static> SabiLayoutManager for DynamicLayout<Ord>
         };
 
         widget.set_visible(false);
-        self.container
-            .as_ref()
-            .expect("there should be a container")
-            .append(&widget);
+        // self.container
+        //     .as_ref()
+        //     .expect("there should be a container")
+        //     .append(&widget);
 
-        self.widget_map
-            .borrow_mut()
-            .insert(activity_id.clone(), widget);
+        // self.widget_map
+        //     .borrow_mut()
+        //     .insert(activity_id.clone(), widget);
+
+        self.order_manager.borrow_mut().add(activity_id, widget);
+        if self.config.reorder_on_add {
+            self.update_activity_order();
+        }
 
         self.configure_widget(activity_id);
-
-        let update = self.priority.borrow_mut().add(activity_id);
-        update.apply(
-            self.widget_map.borrow(),
-            &self.container.clone().unwrap(),
-            activity_id,
-        );
     }
 
     fn get_activity(&self, activity: &ActivityIdentifier) -> ROption<SabiWidget> {
-        self.widget_map
+        self.order_manager
+            .borrow()
+            .get_widget_map()
             .borrow()
             .get(activity)
             .map(|wid| SabiWidget::from(wid.clone().upcast::<gtk::Widget>()))
@@ -200,36 +176,52 @@ impl<Ord: WidgetOrderManager + 'static> SabiLayoutManager for DynamicLayout<Ord>
     }
 
     fn remove_activity(&mut self, activity: &ActivityIdentifier) {
-        let widget = self.widget_map.borrow_mut().remove(activity);
-        if let Some(widget) = widget {
-            if let Some(container) = self.container.as_ref() {
-                container.remove(&widget);
-                let update = self.priority.borrow_mut().remove(activity);
-                update.apply(
-                    self.widget_map.borrow(),
-                    &self.container.clone().unwrap(),
-                    activity,
-                );
+        let create_new_window =
+            if let Some(container) = self.order_manager.borrow().get_container().as_ref() {
+                // container.remove(&widget);
+                self.order_manager.borrow_mut().remove(activity);
+                // update.apply(
+                //     self.widget_map.borrow(),
+                //     &self.container.clone().unwrap(),
+                //     activity,
+                // );
                 if container.first_child().is_none() {
                     // update window, for some reason if there are no children
                     // in the container, the last child stays displayed
-                    if let Some(win) = self.app.windows().first() {
-                        win.close();
-                        self.create_new_window();
-                    }
+                    true
+                } else {
+                    false
                 }
+            } else {
+                true
+            };
+        if create_new_window {
+            if let Some(win) = self.app.windows().first() {
+                win.close();
+                self.create_new_window();
             }
         }
     }
 
     fn list_activities(&self) -> RVec<ActivityIdentifier> {
-        self.widget_map.borrow().keys().cloned().collect()
+        self.order_manager
+            .borrow()
+            .list_activities()
+            .iter()
+            .map(|key| (**key).clone())
+            .collect()
     }
 
     fn activity_notification(&self, activity: &ActivityIdentifier, mode_id: u8) {
-        if let Some(widget) = self.widget_map.borrow().get(activity) {
+        if let Some(widget) = self
+            .order_manager
+            .borrow()
+            .get_widget_map()
+            .borrow()
+            .get(activity)
+        {
             let mode = ActivityMode::try_from(mode_id).unwrap();
-            let priority = self.priority.clone();
+            let priority = self.order_manager.clone();
             if !priority.borrow().is_shown(activity) {
                 widget.set_visible(true);
                 widget.remove_css_class("hidden");
@@ -265,200 +257,72 @@ impl<Ord: WidgetOrderManager + 'static> DynamicLayout<Ord> {
     fn start_event_listener(&mut self) {
         // listen to activate widget
         let mut recv_activate_widget = self.activate_widget.1.take().unwrap();
-        let widget_map = self.widget_map.clone();
-        let priority = self.priority.clone();
-        let container = self.container.clone().unwrap();
+        // let widget_map = self.widget_map.clone();
+        let priority = self.order_manager.clone();
+        // let container = self.container.clone().unwrap();
         glib::MainContext::default().spawn_local(async move {
             while let Some(id) = recv_activate_widget.recv().await {
-                let widget_map = widget_map.borrow();
+                // let widget_map = widget_map.borrow();
 
-                let update = priority.borrow_mut().activate(&id);
-                log::trace!("activate {id} ~~:~~ {:#?}", priority.borrow());
+                priority.borrow_mut().activate(&id);
+                log::trace!("activate {id}");
                 // activate and show this
-                let aw = widget_map.get(&id).unwrap();
-                aw.set_mode(ActivityMode::Compact);
-                // deactivate or hide other
-                update.apply(widget_map, &container, &id);
+                // let aw = widget_map.get(&id).unwrap();
+                // aw.set_mode(ActivityMode::Compact);
+                // // deactivate or hide other
+                // update.apply(widget_map, &container, &id);
             }
         });
 
         // listen to deactivate widget
         let mut recv_deactivate_widget = self.deactivate_widget.1.take().unwrap();
-        let widget_map = self.widget_map.clone();
-        let priority = self.priority.clone();
-        let container = self.container.clone().unwrap();
+        // let widget_map = self.widget_map.clone();
+        let priority = self.order_manager.clone();
+        // let container = self.container.clone().unwrap();
         glib::MainContext::default().spawn_local(async move {
             while let Some(id) = recv_deactivate_widget.recv().await {
-                let widget_map = widget_map.borrow();
+                // let widget_map = widget_map.borrow();
 
-                let update = priority.borrow_mut().deactivate(&id);
-                log::trace!("deactivate {id} ~~:~~ {:#?}", priority.borrow());
+                priority.borrow_mut().deactivate(&id);
+                log::trace!("deactivate {id}");
                 // let aw = widget_map.get(&id);
-                update.apply(widget_map, &container, &id);
+                // update.apply(widget_map, &container, &id);
             }
         });
 
         // listen to cycle widgets
         let mut recv_cycle = self.cycle_channel.1.take().unwrap();
-        let widget_map = self.widget_map.clone();
-        let priority = self.priority.clone();
-        let container = self.container.clone().unwrap();
+        // let widget_map = self.widget_map.clone();
+        let priority = self.order_manager.clone();
+        // let container = self.container.clone().unwrap();
         glib::MainContext::default().spawn_local(async move {
             while let Some(next) = recv_cycle.recv().await {
-                let map = widget_map.borrow();
-                let (updates, widget) = if next {
-                    let updates = priority.borrow_mut().next();
-                    let first = container.first_child().unwrap();
-                    let first_id = map
-                        .iter()
-                        .find(|a| a.1.clone().upcast::<gtk::Widget>() == first)
-                        .unwrap();
-                    (updates, first_id)
+                // let map = widget_map.borrow();
+                if next {
+                    priority.borrow_mut().next();
+                    // let first = container.first_child().unwrap();
+                    // let first_id = map
+                    //     .iter()
+                    //     .find(|a| a.1.clone().upcast::<gtk::Widget>() == first)
+                    //     .unwrap();
+                    // (updates, first_id)
                 } else {
-                    let updates = priority.borrow_mut().previous();
-                    let last = container.last_child().unwrap();
-                    let last_id = map
-                        .iter()
-                        .find(|a| a.1.clone().upcast::<gtk::Widget>() == last)
-                        .unwrap();
-                    (updates, last_id)
+                    priority.borrow_mut().previous();
+                    // let last = container.last_child().unwrap();
+                    // let last_id = map
+                    //     .iter()
+                    //     .find(|a| a.1.clone().upcast::<gtk::Widget>() == last)
+                    //     .unwrap();
+                    // (updates, last_id)
                 };
                 log::trace!("cycle {:#?}", priority.borrow());
                 // let aw = widget_map.get(&id);
 
-                for update in updates {
-                    update.apply(widget_map.borrow(), &container, widget.0);
-                }
+                // for update in updates {
+                //     update.apply(widget_map.borrow(), &container, widget.0);
+                // }
             }
         });
-    }
-
-    fn configure_widget(&self, activity_id: &ActivityIdentifier) {
-        let widget_map = self.widget_map.borrow();
-        let widget = widget_map.get(activity_id).unwrap();
-
-        widget.set_valign(self.config.window_position.v_anchor.map_gtk());
-        widget.set_halign(self.config.window_position.h_anchor.map_gtk());
-
-        // remove old controllers
-        let mut controllers_removed = 0;
-        let mut controllers = vec![];
-        for controller in widget
-            .observe_controllers()
-            .iter::<glib::Object>()
-            .flatten()
-            .flat_map(|c| c.downcast::<EventController>())
-        {
-            if let Some(name) = controller.name() {
-                if name == "press_gesture" || name == "focus_controller" {
-                    controllers.push(controller);
-                    controllers_removed += 1;
-                }
-            }
-        }
-        for controller in controllers.iter() {
-            widget.remove_controller(controller);
-        }
-        // connect deactivate if it's not already connected
-        if controllers_removed == 0 {
-            let send_deactivate = self.deactivate_widget.0.clone();
-            let id = activity_id.clone();
-            widget.connect_mode_notify(move |aw| {
-                if aw.mode() != ActivityMode::Minimal {
-                    return;
-                }
-                if let Err(err) = send_deactivate.send(id.clone()) {
-                    log::error!("error activating widget: {err}");
-                }
-            });
-        }
-
-        let press_gesture = gtk::GestureClick::new();
-        press_gesture.set_name(Some("press_gesture"));
-        let send_activate = self.activate_widget.0.clone();
-        let send_cycle = self.cycle_channel.0.clone();
-        // Minimal mode to Compact mode controller
-        press_gesture.set_button(gdk::BUTTON_PRIMARY);
-        let id = activity_id.clone();
-        press_gesture.connect_released(move |gest, _, x, y| {
-            let aw = gest.widget().downcast::<ActivityWidget>().unwrap();
-            if x < 0.0
-                || y < 0.0
-                || x > aw.size(gtk::Orientation::Horizontal).into()
-                || y > aw.size(gtk::Orientation::Vertical).into()
-            {
-                // cycle by dragging
-                if aw.mode() == ActivityMode::Minimal {
-                    if let Err(err) = send_cycle.send(x < 0.0) {
-                        log::error!("error activating widget: {err}");
-                    }
-                }
-                return;
-            }
-            if let ActivityMode::Minimal = aw.mode() {
-                if let Err(err) = send_activate.send(id.clone()) {
-                    log::error!("error activating widget: {err}");
-                    return;
-                }
-                // aw.set_mode(ActivityMode::Compact);
-                gest.set_state(gtk::EventSequenceState::Claimed);
-            }
-        });
-        widget.add_controller(press_gesture);
-
-        // auto minimize (to Compact mode) controller
-        let focus_controller = gtk::EventControllerMotion::new();
-        focus_controller.set_name(Some("focus_controller"));
-        if self.config.auto_minimize_timeout >= 0 {
-            let cancel_minimize = self.cancel_minimize.clone();
-            let timeout = self.config.auto_minimize_timeout;
-            let activity_id = activity_id.clone();
-            focus_controller.connect_leave(move |evt| {
-                let aw = evt.widget().downcast::<ActivityWidget>().unwrap();
-                let mode = aw.mode();
-                if matches!(mode, ActivityMode::Minimal | ActivityMode::Compact) {
-                    return;
-                }
-                let id = glib::timeout_add_local_once(
-                    Duration::from_millis(timeout.try_into().unwrap()),
-                    move || {
-                        if !aw.state_flags().contains(StateFlags::PRELIGHT) && aw.mode() == mode {
-                            //mouse is not on widget and mode hasn't changed
-                            aw.set_mode(ActivityMode::Compact);
-                        }
-                    },
-                );
-                let mut cancel_minimize = cancel_minimize.borrow_mut();
-                if let Some(source) = cancel_minimize.remove(&activity_id) {
-                    if glib::MainContext::default()
-                        .find_source_by_id(&source)
-                        .is_some()
-                    {
-                        source.remove();
-                    }
-                }
-
-                cancel_minimize.insert(activity_id.clone(), id);
-            });
-            widget.add_controller(focus_controller);
-        }
-    }
-
-    fn configure_container(&self) {
-        let container = if self.container.is_none() {
-            return;
-        } else {
-            self.container.as_ref().unwrap()
-        };
-        // if self.config.orientation_horizontal {
-        container.set_orientation(gtk::Orientation::Horizontal);
-        // } else {
-        // container.set_orientation(gtk::Orientation::Vertical);
-        // }
-        if !self.config.window_position.layer_shell {
-            container.set_halign(self.config.window_position.h_anchor.map_gtk());
-            container.set_valign(self.config.window_position.v_anchor.map_gtk());
-        }
     }
 
     fn create_new_window(&mut self) {
@@ -473,20 +337,50 @@ impl<Ord: WidgetOrderManager + 'static> DynamicLayout<Ord> {
             let button = gest.current_button();
             if button == 8 {
                 // back
-                send_cycle.send(true).unwrap();
+                send_cycle.send(false).unwrap();
             } else if button == 9 {
                 // forward
-                send_cycle.send(false).unwrap();
+                send_cycle.send(true).unwrap();
             }
         });
         container.add_controller(cycle_gesture);
 
-        self.container = Some(container);
-        window.set_child(self.container.as_ref());
+        self.order_manager
+            .borrow_mut()
+            .set_container(container.clone());
+        window.set_child(Some(&container));
         self.config
             .window_position
             .init_window(&window.clone().upcast());
         //show window
         window.present();
+    }
+
+    fn update_activity_order(&mut self) {
+        let activities = self.order_manager.borrow().list_activities();
+        let mut buckets: Vec<(ActivityMatch, Vec<&ActivityIdentifier>)> = self
+            .activity_order
+            .iter()
+            .cloned()
+            .map(|mch| (mch, Vec::new()))
+            .collect();
+        buckets.push((ActivityMatch::Other, Vec::new()));
+        for activty in activities.iter() {
+            for (mat, ref mut bucket) in buckets.iter_mut() {
+                if mat.contains(activty) {
+                    bucket.push(activty);
+                    break;
+                }
+            }
+        }
+        let final_order: Vec<&ActivityIdentifier> = buckets
+            .into_iter()
+            .map(|e| e.1)
+            .reduce(|mut acc, mut e| {
+                acc.append(&mut e);
+                acc
+            })
+            .unwrap_or(Vec::new());
+        self.order_manager.borrow_mut().update_order(final_order);
     }
 }

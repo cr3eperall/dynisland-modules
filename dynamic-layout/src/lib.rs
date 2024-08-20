@@ -1,6 +1,8 @@
+mod config;
 mod layout;
 mod priority_order;
 mod window_position;
+
 use abi_stable::{export_root_module, prefix_type::PrefixTypeTrait};
 use dynisland_abi::layout::{LayoutManagerBuilder, LayoutManagerBuilderRef};
 use layout::new;

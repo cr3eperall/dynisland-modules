@@ -151,8 +151,8 @@ pub fn get_activity(
 
 fn get_minimal() -> gtk::Widget {
     let minimal = gtk::Box::builder()
-        .height_request(40)
-        .width_request(50)
+        // .height_request(40)
+        // .width_request(50)
         .valign(gtk::Align::Center)
         .halign(gtk::Align::Center)
         .vexpand(false)
@@ -167,7 +167,7 @@ fn get_minimal() -> gtk::Widget {
     scroll_label.set_vexpand(false);
     scroll_label.set_valign(gtk::Align::Center);
     scroll_label.set_halign(gtk::Align::Start);
-    scroll_label.set_width_request(40);
+    // scroll_label.set_width_request(40);
     scroll_label.set_height_request(40);
 
     minimal.append(&scroll_label);

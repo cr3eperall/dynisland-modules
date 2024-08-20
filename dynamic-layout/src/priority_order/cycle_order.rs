@@ -1,13 +1,24 @@
-use std::{collections::VecDeque, rc::Rc};
+use std::{
+    cell::RefCell,
+    collections::{HashMap, HashSet, VecDeque},
+    rc::Rc,
+};
 
 use dynisland_abi::module::ActivityIdentifier;
+use dynisland_core::graphics::activity_widget::{
+    boxed_activity_mode::ActivityMode, ActivityWidget,
+};
+use gdk::prelude::ListModelExtManual;
+use gtk::prelude::*;
 
-use crate::layout::DynamicLayoutConfig;
+use crate::config::DynamicLayoutConfig;
 
-use super::{ui_update::UiUpdate, WidgetOrderManager};
+use super::WidgetOrderManager;
 
 #[derive(Debug, Default)]
 pub struct CycleOrder {
+    pub(crate) widget_map: Rc<RefCell<HashMap<Rc<ActivityIdentifier>, ActivityWidget>>>,
+    pub(crate) container: Option<gtk::Box>,
     pub(crate) order: VecDeque<Rc<ActivityIdentifier>>,
     pub(crate) active: u16,
     pub(crate) active_offset: u16,
@@ -23,282 +34,244 @@ impl CycleOrder {
             ..Default::default()
         }
     }
+    fn update_ui(&self) {
+        //remove widgets
+        if self.container.is_none()
+            || (self.container.clone().unwrap().first_child().is_none()
+                && self.widget_map.borrow().is_empty())
+        {
+            return;
+        }
+
+        let all_widgets = self
+            .widget_map
+            .borrow()
+            .values()
+            .cloned()
+            .collect::<HashSet<ActivityWidget>>();
+        let mut to_remove = Vec::new();
+        let mut container_children = HashSet::new();
+        for widget in self
+            .container
+            .clone()
+            .unwrap()
+            .observe_children()
+            .iter::<glib::Object>()
+            .flatten()
+        {
+            let widget = widget.downcast::<ActivityWidget>().unwrap();
+            container_children.insert(widget.clone());
+            if !all_widgets.contains(&widget) {
+                to_remove.push(widget);
+            }
+        }
+        for widget in to_remove {
+            self.container.clone().unwrap().remove(&widget);
+        }
+
+        //add widgets
+        for widget in all_widgets {
+            if !container_children.contains(&widget) {
+                self.container.clone().unwrap().append(&widget);
+            }
+        }
+
+        //reorder and activate/deactivate widgets
+        let mut last_widget = None::<&ActivityWidget>;
+        let widget_map = self.widget_map.borrow();
+        for widget_id in self.order.iter() {
+            let widget = widget_map.get(widget_id.as_ref()).unwrap();
+            self.container
+                .clone()
+                .unwrap()
+                .reorder_child_after(widget, last_widget);
+
+            if self.is_active(widget_id) {
+                widget.set_mode(ActivityMode::Compact);
+            } else {
+                widget.set_mode(ActivityMode::Minimal);
+            }
+            if self.is_shown(widget_id) {
+                widget.set_visible(true);
+                widget.remove_css_class("hidden");
+            } else {
+                widget.add_css_class("hidden");
+            }
+            last_widget = Some(widget);
+        }
+    }
 }
 
 impl WidgetOrderManager for CycleOrder {
     fn is_active(&self, id: &ActivityIdentifier) -> bool {
-        let order_idx = match self.order.iter().position(|tid| **tid == *id) {
-            Some(idx) => idx,
-            None => return false,
-        };
-        self.active_offset as usize <= order_idx
-            && order_idx < (self.active + self.active_offset).into()
+        if let Some(pos) = self.order.iter().position(|t| t.as_ref() == id) {
+            (pos as u16) >= self.active_offset && (pos as u16) < self.active + self.active_offset
+        } else {
+            false
+        }
     }
 
     fn is_shown(&self, id: &ActivityIdentifier) -> bool {
-        let order_idx = match self.order.iter().position(|tid| **tid == *id) {
-            Some(idx) => idx,
-            None => return false,
-        };
-        order_idx < self.max_shown.into()
-    }
-    fn update_config_and_reset(&mut self, max_active: u16, max_shown: u16) {
-        let max_shown = if max_shown < max_active {
-            max_active + 1
+        if let Some(pos) = self.order.iter().position(|t| t.as_ref() == id) {
+            (pos as u16) < self.max_shown
         } else {
-            max_shown
-        };
-        self.active_offset = 0;
-        self.active = 0;
+            false
+        }
+    }
+
+    fn set_container(&mut self, container: gtk::Box) {
+        self.container = Some(container);
+    }
+
+    fn get_container(&self) -> Option<gtk::Box> {
+        self.container.clone()
+    }
+
+    fn get_widget_map(&self) -> Rc<RefCell<HashMap<Rc<ActivityIdentifier>, ActivityWidget>>> {
+        self.widget_map.clone()
+    }
+
+    fn list_activities(&self) -> Vec<Rc<ActivityIdentifier>> {
+        self.order.iter().cloned().collect()
+    }
+
+    fn update_order(&mut self, order: Vec<&ActivityIdentifier>) {
+        if self.order.len() != order.len() {
+            return;
+        }
+        let mut self_ordered = self
+            .order
+            .iter()
+            .map(|s| s.as_ref())
+            .collect::<Vec<&ActivityIdentifier>>();
+        self_ordered.sort();
+        let mut other_ordered = order.clone();
+        other_ordered.sort();
+        for (i, widget) in self_ordered.iter().enumerate() {
+            if widget != &other_ordered[i] {
+                return;
+            }
+        }
+
+        self.order.clear();
+        for id in order {
+            self.order.push_back(Rc::new(id.clone()));
+        }
+        self.update_ui();
+    }
+
+    fn update_config(&mut self, max_active: u16, max_shown: u16) {
+        let max_shown = max_shown.max(max_active);
         self.max_active = max_active;
         self.max_shown = max_shown;
+        self.active = self.active.min(max_active);
+
+        self.update_ui();
     }
 
-    fn add(&mut self, id: &ActivityIdentifier) -> UiUpdate {
-        let mut update = UiUpdate::default();
-        if self.order.iter().any(|tid| &**tid == id) {
-            return update;
+    fn add(&mut self, id: &ActivityIdentifier, widget: ActivityWidget) {
+        if self.widget_map.borrow().contains_key(id) {
+            return;
         }
+        self.widget_map
+            .borrow_mut()
+            .insert(Rc::new(id.clone()), widget);
         let shared_id = Rc::new(id.clone());
         self.order.push_back(shared_id.clone());
-
-        // // check if it can be active
-        // if self.active < self.max_active {
-        //     self.active += 1;
-        //     update.activate(&shared_id);
-        // }
-
-        // check if it can be shown
-        if self.order.len() <= self.max_shown.into() {
-            update.show(&shared_id);
-        }
-
-        // not shown
-        update
+        self.update_ui();
     }
 
-    fn remove(&mut self, id: &ActivityIdentifier) -> UiUpdate {
-        let mut update = UiUpdate::default();
-        let idx = match self.order.iter().position(|tid| &**tid == id) {
-            Some(idx) => idx,
-            None => {
-                return update;
-            }
-        };
-
-        // check if it was active
+    fn remove(&mut self, id: &ActivityIdentifier) {
+        let postion = self.order.iter().position(|tid| tid.as_ref() == id);
+        if postion.is_none() {
+            return;
+        }
         if self.is_active(id) {
             self.active -= 1;
-        } else if idx < self.active_offset as usize {
-            // is before active
-            self.active_offset -= 1;
         }
-
-        // check if it was shown
-        if self.is_shown(id) {
-            if let Some(to_show) = self.order.get((self.max_shown - 1).into()) {
-                update.show(to_show);
-            }
-        }
-        self.order.remove(idx);
-        update
+        self.widget_map.borrow_mut().remove(id);
+        self.order.remove(postion.unwrap());
+        self.update_ui();
     }
 
-    fn activate(&mut self, id: &ActivityIdentifier) -> UiUpdate {
-        let mut update = UiUpdate::default();
-        let idx = match self.order.iter().position(|tid| &**tid == id) {
-            //1
+    fn activate(&mut self, id: &ActivityIdentifier) {
+        if self.is_active(id) {
+            return;
+        }
+        let idx = match self.order.iter().position(|tid| tid.as_ref() == id) {
             Some(idx) => idx,
             None => {
-                return update;
+                return;
             }
         };
-        if self.is_active(id) {
-            return update;
+        if !self.is_shown(id) {
+            let act = self.order.remove(idx).unwrap();
+            self.order
+                .insert((self.max_shown as usize).min(self.order.len()) - 1, act);
         }
-        if self.is_shown(id) {
-            if self.active > 0 {
-                if idx <= self.active_offset.into() {
-                    // it's left of the activated ones
-                    if self.active_offset > 0 {
-                        let act = self.order.remove(idx).unwrap();
-                        self.active_offset -= 1;
-                        self.order.insert(self.active_offset.into(), act);
-                        if self.active_offset > 0 {
-                            update.move_after(
-                                self.order.get((self.active_offset - 1).into()).unwrap(),
-                            );
-                        } else {
-                            update.move_to_first();
-                        }
-                    }
-                } else {
-                    // it's right of the activated ones
-                    let act = self.order.remove(idx).unwrap();
-                    self.order
-                        .insert((self.active_offset + self.active).into(), act);
-                    update.move_after(
-                        self.order
-                            .get((self.active_offset + self.active - 1).into())
-                            .unwrap(),
-                    );
-                }
+        if self.active > 0 {
+            let act = self.order.remove(idx).unwrap();
+            if idx <= self.active_offset.into() {
+                // it's left of the activated ones
+                self.active_offset -= 1;
+                self.order.insert(self.active_offset.into(), act);
             } else {
-                self.active_offset = idx as u16;
-            }
-            // check if there is still space for active
-            if self.active < self.max_active {
-                self.active += 1;
-            } else if idx > self.active_offset.into() {
-                //right
-                self.active_offset += 1;
-                update.deactivate(self.order.get((self.active_offset - 1).into()).unwrap());
-            } else {
-                //left
-                update.deactivate(
-                    self.order
-                        .get((self.active_offset + self.active).into())
-                        .unwrap(),
-                );
+                // it's right of the activated ones
+                self.order
+                    .insert((self.active_offset + self.active).into(), act);
             }
         } else {
-            todo!("for now a widget needs to be already shown to be activated");
+            self.active_offset = idx as u16;
         }
-        update
+        // check if there is still space for active
+        if self.active < self.max_active {
+            self.active += 1;
+        } else if idx > self.active_offset.into() {
+            //right
+            self.active_offset += 1;
+        }
+        self.update_ui();
     }
 
-    fn deactivate(&mut self, id: &ActivityIdentifier) -> UiUpdate {
-        let mut update = UiUpdate::default();
-        let idx = match self.order.iter().position(|tid| &**tid == id) {
+    fn deactivate(&mut self, id: &ActivityIdentifier) {
+        if !self.is_active(id) {
+            return;
+        }
+        let idx = match self.order.iter().position(|tid| tid.as_ref() == id) {
             Some(idx) => idx,
             None => {
-                return update;
+                return;
             }
         };
-        if !self.is_active(id) {
-            return update;
-        }
+
         let dist_to_left = idx - self.active_offset as usize;
         let dist_to_right = self.active as usize - (dist_to_left) - 1;
         if dist_to_left < dist_to_right {
             //move to the left
             let act = self.order.remove(idx).unwrap();
             self.order.insert((self.active_offset).into(), act);
-            if self.active_offset > 0 {
-                match self.order.get((self.active_offset - 1).into()) {
-                    Some(act) => {
-                        update.move_after(act);
-                    }
-                    None => {
-                        update.move_to_first();
-                    }
-                }
-            }
             self.active_offset += 1;
         } else {
             //move to the right
             let act = self.order.remove(idx).unwrap();
             self.order
                 .insert((self.active_offset + self.active - 1).into(), act);
-            if self.active > 1 {
-                update.move_after(
-                    self.order
-                        .get((self.active_offset + self.active - 2).into())
-                        .unwrap(),
-                );
-            }
         }
         self.active -= 1;
-        update
+        self.update_ui();
     }
 
-    fn next(&mut self) -> Vec<UiUpdate> {
-        let mut updates = vec![];
-        if self.order.len() <= 1 {
-            return updates;
+    fn next(&mut self) {
+        if let Some(back) = self.order.pop_back() {
+            self.order.push_front(back);
+            self.update_ui();
         }
-        let act = self.order.pop_front().unwrap();
-        let first = act.clone();
-        self.order.push_back(act);
-        let mut upd = UiUpdate::default();
-        let pre_last = self.order.get(self.order.len() - 2).unwrap();
-        upd.move_after(pre_last);
-        updates.push(upd);
-        if self.order.len() >= self.max_shown.into() {
-            //need to show and hide
-            let mut upd = UiUpdate::default();
-            upd.deactivate(&first);
-            upd.hide(&first);
-            updates.push(upd);
-            let mut upd = UiUpdate::default();
-            let last = self.order.get((self.max_shown - 1).into()).unwrap();
-            upd.show(last);
-            updates.push(upd);
-        }
-        if self.active_offset > 0 {
-            // need to deactivate an activity
-            let mut upd = UiUpdate::default();
-            let before = self.order.get((self.active_offset - 1).into()).unwrap();
-            upd.deactivate(before);
-            updates.push(upd);
-        }
-        if self.active > 0 {
-            if let Some(after) = self
-                .order
-                .get((self.active_offset + self.active - 1).into())
-            {
-                let mut upd = UiUpdate::default();
-                upd.activate(after);
-                updates.push(upd);
-            }
-        }
-        updates
     }
 
-    fn previous(&mut self) -> Vec<UiUpdate> {
-        let mut updates = vec![];
-        if self.order.len() <= 1 {
-            return updates;
+    fn previous(&mut self) {
+        if let Some(front) = self.order.pop_front() {
+            self.order.push_back(front);
+            self.update_ui();
         }
-        let last = self.order.pop_back().unwrap();
-        let new_first = last.clone();
-        self.order.push_front(last);
-        let mut upd = UiUpdate::default();
-        upd.move_to_first();
-        updates.push(upd);
-        if self.order.len() > self.max_shown.into() {
-            //need to show and hide
-            let mut upd = UiUpdate::default();
-            let last_shown = self.order.get((self.max_shown).into()).unwrap();
-            upd.deactivate(last_shown);
-            upd.hide(last_shown);
-            updates.push(upd);
-            let mut upd = UiUpdate::default();
-            upd.show(&new_first);
-            updates.push(upd);
-        }
-        // need to deactivate an activity
-        if self.active > 0 {
-            let mut upd = UiUpdate::default();
-            let before = self.order.get((self.active_offset).into()).unwrap();
-            upd.activate(before);
-            updates.push(upd);
-            let mut upd = UiUpdate::default();
-            if let Some(after) = self.order.get((self.active_offset + self.active).into()) {
-                upd.deactivate(after);
-            } else {
-                upd.deactivate(&new_first);
-            }
-            updates.push(upd);
-        }
-        updates
     }
-
-    // fn move_left(&mut self, id: &ActivityIdentifier) -> UiUpdate {
-    //     todo!()
-    // }
-
-    // fn move_right(&mut self, id: &ActivityIdentifier) -> UiUpdate {
-    //     todo!()
-    // }
 }
