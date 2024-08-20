@@ -20,7 +20,7 @@ use dynisland_core::graphics::activity_widget::{
 };
 use env_logger::Env;
 use gdk::prelude::*;
-use glib::Cast;
+use glib::{Cast, SourceId};
 use gtk::{prelude::*, EventController, StateFlags};
 use log::Level;
 use ron::ser::PrettyConfig;
@@ -36,6 +36,7 @@ use crate::{
 pub struct DynamicLayout<Ord: WidgetOrderManager> {
     app: gtk::Application,
     widget_map: Rc<RefCell<HashMap<ActivityIdentifier, ActivityWidget>>>,
+    cancel_minimize: Rc<RefCell<HashMap<ActivityIdentifier, SourceId>>>,
     container: Option<gtk::Box>,
     priority: Rc<RefCell<Ord>>,
     activate_widget: (
@@ -84,6 +85,7 @@ pub fn new(app: SabiApplication) -> RResult<LayoutManagerType, RBoxError> {
     let this = DynamicLayout {
         app,
         widget_map: Rc::new(RefCell::new(HashMap::new())),
+        cancel_minimize: Rc::new(RefCell::new(HashMap::new())),
         container: None,
         priority: Rc::new(RefCell::new(CycleOrder::new(&config))),
         activate_widget: (channel.0, Some(channel.1)),
@@ -331,9 +333,9 @@ impl<Ord: WidgetOrderManager + 'static> DynamicLayout<Ord> {
         });
     }
 
-    fn configure_widget(&self, widget_id: &ActivityIdentifier) {
+    fn configure_widget(&self, activity_id: &ActivityIdentifier) {
         let widget_map = self.widget_map.borrow();
-        let widget = widget_map.get(widget_id).unwrap();
+        let widget = widget_map.get(activity_id).unwrap();
 
         widget.set_valign(self.config.window_position.v_anchor.map_gtk());
         widget.set_halign(self.config.window_position.h_anchor.map_gtk());
@@ -360,7 +362,7 @@ impl<Ord: WidgetOrderManager + 'static> DynamicLayout<Ord> {
         // connect deactivate if it's not already connected
         if controllers_removed == 0 {
             let send_deactivate = self.deactivate_widget.0.clone();
-            let id = widget_id.clone();
+            let id = activity_id.clone();
             widget.connect_mode_notify(move |aw| {
                 if aw.mode() != ActivityMode::Minimal {
                     return;
@@ -377,7 +379,7 @@ impl<Ord: WidgetOrderManager + 'static> DynamicLayout<Ord> {
         let send_cycle = self.cycle_channel.0.clone();
         // Minimal mode to Compact mode controller
         press_gesture.set_button(gdk::BUTTON_PRIMARY);
-        let id = widget_id.clone();
+        let id = activity_id.clone();
         press_gesture.connect_released(move |gest, _, x, y| {
             let aw = gest.widget().downcast::<ActivityWidget>().unwrap();
             if x < 0.0
@@ -408,14 +410,16 @@ impl<Ord: WidgetOrderManager + 'static> DynamicLayout<Ord> {
         let focus_controller = gtk::EventControllerMotion::new();
         focus_controller.set_name(Some("focus_controller"));
         if self.config.auto_minimize_timeout >= 0 {
+            let cancel_minimize = self.cancel_minimize.clone();
             let timeout = self.config.auto_minimize_timeout;
+            let activity_id = activity_id.clone();
             focus_controller.connect_leave(move |evt| {
                 let aw = evt.widget().downcast::<ActivityWidget>().unwrap();
                 let mode = aw.mode();
                 if matches!(mode, ActivityMode::Minimal | ActivityMode::Compact) {
                     return;
                 }
-                glib::timeout_add_local_once(
+                let id = glib::timeout_add_local_once(
                     Duration::from_millis(timeout.try_into().unwrap()),
                     move || {
                         if !aw.state_flags().contains(StateFlags::PRELIGHT) && aw.mode() == mode {
@@ -424,6 +428,17 @@ impl<Ord: WidgetOrderManager + 'static> DynamicLayout<Ord> {
                         }
                     },
                 );
+                let mut cancel_minimize = cancel_minimize.borrow_mut();
+                if let Some(source) = cancel_minimize.remove(&activity_id) {
+                    if glib::MainContext::default()
+                        .find_source_by_id(&source)
+                        .is_some()
+                    {
+                        source.remove();
+                    }
+                }
+
+                cancel_minimize.insert(activity_id.clone(), id);
             });
             widget.add_controller(focus_controller);
         }
