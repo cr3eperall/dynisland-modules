@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <template class="OverlayWidget" parent="GtkWidget">
+        <property name="height-request">900</property>
+        <property name="width-request">1600</property>
+        <property name="valign">center</property>
+        <property name="halign">center</property>
+        <child>
+            <object class="GtkBox">
+                <property name="orientation">horizontal</property>
+                <property name="valign">center</property>
+                <property name="halign">center</property>
+                <property name="vexpand">false</property>
+                <property name="hexpand">false</property>
+                <property name="homogeneous">false</property>
+                <child>
+                    <object class="GtkLabel" id="label">
+                        <property name="label">Overlay label,
+Hello World
+Hello World</property>
+                        <property name="valign">center</property>
+                        <property name="halign">center</property>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </template>
+</interface>

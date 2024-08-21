@@ -13,11 +13,15 @@ use abi_stable::{
 use anyhow::Context;
 use dynisland_abi::module::{ModuleType, SabiModule, SabiModule_TO, UIServerCommand};
 use env_logger::Env;
+use glib::types::StaticTypeExt;
 use log::Level;
 use ron::ser::PrettyConfig;
 use serde::{Deserialize, Serialize};
 
-use dynisland_core::base_module::{BaseModule, ProducerRuntime};
+use dynisland_core::{
+    base_module::{BaseModule, ProducerRuntime},
+    graphics::widgets::scrolling_label::ScrollingLabel,
+};
 //FIXME fix logging
 
 use super::{widget, NAME};
@@ -54,6 +58,8 @@ pub struct ExampleModule {
 #[sabi_extern_fn]
 pub fn new(app_send: RSender<UIServerCommand>) -> RResult<ModuleType, RBoxError> {
     env_logger::Builder::from_env(Env::default().default_filter_or(Level::Warn.as_str())).init();
+    gtk::gio::resources_register_include!("compiled.gresource")
+        .expect("Failed to register resources.");
 
     let base_module = BaseModule::new(NAME, app_send);
     let this = ExampleModule {
@@ -121,14 +127,8 @@ impl SabiModule for ExampleModule {
 
     #[allow(clippy::let_and_return)]
     fn restart_producers(&self) {
-        self.restart_producer_rt();
-    }
-}
-
-impl ExampleModule {
-    fn restart_producer_rt(&self) {
+        self.producers_rt.shutdown_blocking();
         self.producers_rt.reset_blocking();
-        //restart producers
         for producer in self
             .base_module
             .registered_producers()
@@ -142,11 +142,8 @@ impl ExampleModule {
 
 #[allow(unused_variables)]
 fn producer(module: &ExampleModule) {
-    // let module = cast_dyn_any!(module, ExampleModule).unwrap();
-    //data producer
     let config: &ExampleConfig = &module.config;
 
-    //TODO the locks shouldn't be blocking
     let registered_activities = module.base_module.registered_activities();
     let registered_activities_lock = registered_activities.blocking_lock();
     let label = registered_activities_lock

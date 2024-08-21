@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <template class="CompactWidget" parent="GtkWidget">
+        <property name="height-request">40</property>
+        <property name="width-request">220</property>
+        <property name="valign">center</property>
+        <property name="halign">center</property>
+        <child>
+            <object class="GtkBox">
+                <property name="orientation">horizontal</property>
+                <property name="valign">center</property>
+                <property name="halign">start</property>
+                <property name="vexpand">false</property>
+                <property name="hexpand">false</property>
+                <property name="homogeneous">false</property>
+                <child>
+                    <object class="GtkLabel" id="label">
+                        <property name="label">Compact</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="RollingChar" id="roll1">
+                        <property name="valign">center</property>
+                        <property name="halign">center</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="RollingChar" id="roll2">
+                        <property name="valign">center</property>
+                        <property name="halign">center</property>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </template>
+</interface>

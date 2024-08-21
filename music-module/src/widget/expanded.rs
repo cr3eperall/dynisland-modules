@@ -117,17 +117,6 @@ fn info_container(config: &MusicConfig, width: f32, height: f32) -> Widget {
 
         let visualizer_size = height.min(width * 0.2);
         let visualizer = get_visualizer(visualizer_size, visualizer_size);
-        // visualizer.add_css_class("visualizer");
-        // {
-        //     let image = gtk::Image::builder()
-        //         .file("/home/david/Pictures/visualizer_tmp.jpeg")
-        //         .width_request((visualizer_size * 0.8) as i32)
-        //         .height_request((visualizer_size * 0.8) as i32)
-        //         .hexpand(true)
-        //         .halign(gtk::Align::Center)
-        //         .build();
-        //     visualizer.append(&image);
-        // }
 
         container.append(&album_art);
         container.append(&music_info_container);

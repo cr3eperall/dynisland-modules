@@ -3,6 +3,7 @@ name = "example-module"
 version = "0.1.0"
 edition = "2021"
 license = "mit"
+build = "build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -23,6 +24,9 @@ grass = { workspace = true }
 
 log = { workspace = true }
 env_logger = { workspace = true }
+
+[build-dependencies]
+glib-build-tools = { workspace = true }
 
 [lib]
 name = "example_module"
