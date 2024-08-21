@@ -19,7 +19,7 @@ use dynisland_core::graphics::activity_widget::{
     boxed_activity_mode::ActivityMode, ActivityWidget,
 };
 use env_logger::Env;
-use glib::{Cast, SourceId};
+use glib::SourceId;
 use gtk::prelude::*;
 use log::Level;
 use ron::ser::PrettyConfig;

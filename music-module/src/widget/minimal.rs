@@ -1,4 +1,3 @@
-use glib::Cast;
 use gtk::prelude::*;
 
 use crate::module::MusicConfig;

@@ -1,5 +1,4 @@
 use dynisland_core::graphics::widgets::scrolling_label::ScrollingLabel;
-use glib::Cast;
 use gtk::prelude::*;
 
 use crate::module::MusicConfig;

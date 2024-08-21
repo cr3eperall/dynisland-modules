@@ -1,6 +1,6 @@
 use dynisland_core::graphics::activity_widget::boxed_activity_mode::ActivityMode;
 use gdk::{gdk_pixbuf::Pixbuf, gio::MemoryInputStream};
-use glib::{Bytes, Cast};
+use glib::{object::Cast, Bytes};
 use gtk::{
     prelude::{BoxExt, WidgetExt},
     Widget,
