@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-    <template class="ExpandedWidget" parent="GtkWidget">
+    <template class="ExampleExpandedWidget" parent="GtkWidget">
         <property name="height-request">400</property>
         <property name="width-request">500</property>
         <property name="valign">center</property>

@@ -1,46 +1,63 @@
-use gtk::prelude::*;
-
 use crate::module::MusicConfig;
 
-pub fn get_minimal(config: &MusicConfig) -> gtk::Widget {
-    let height: f32 = 40.0;
-    let width: f32 = 80.0;
-    let minimal = gtk::Box::builder()
-        .orientation(gtk::Orientation::Horizontal)
-        .height_request(height as i32)
-        .width_request(width as i32)
-        .valign(gtk::Align::Center)
-        .halign(gtk::Align::Center)
-        .vexpand(false)
-        .hexpand(false)
-        .homogeneous(true)
-        .build();
-    {
-        let album_art_width = width * 0.45;
-        let album_art_size = height.min(width);
-        let album_art = gtk::Box::builder()
-            .width_request(album_art_width as i32)
-            .homogeneous(false)
-            .hexpand(false)
-            .build();
+use glib::{
+    subclass::{
+        object::{ObjectImpl, ObjectImplExt},
+        types::{ObjectSubclass, ObjectSubclassIsExt},
+        InitializingObject,
+    },
+    Object,
+};
+use gtk::{
+    subclass::widget::{
+        CompositeTemplateClass, CompositeTemplateInitializingExt, WidgetClassExt, WidgetImpl,
+    },
+    BinLayout, CompositeTemplate, TemplateChild,
+};
 
-        album_art.add_css_class("album-art");
-        {
-            let image = gtk::Image::builder()
-                .file(config.default_album_art_url.clone())
-                .hexpand(true)
-                .halign(gtk::Align::Center)
-                .valign(gtk::Align::Center)
-                .width_request((album_art_size * 0.75) as i32)
-                .height_request((album_art_size * 0.75) as i32)
-                .overflow(gtk::Overflow::Hidden)
-                .build();
+glib::wrapper! {
+    pub struct Minimal(ObjectSubclass<MinimalPriv>)
+    @extends gtk::Widget;
+}
 
-            // log::debug!("{}", (album_art_size * 0.7) as i32);
-            album_art.append(&image);
-        }
+#[derive(CompositeTemplate, Default)]
+#[template(resource = "/com/github/cr3eperall/dynislandModules/musicModule/minimal.ui")]
+pub struct MinimalPriv {
+    #[template_child]
+    pub image: TemplateChild<gtk::Image>,
+}
 
-        minimal.append(&album_art);
+#[glib::object_subclass]
+impl ObjectSubclass for MinimalPriv {
+    const NAME: &'static str = "MusicMinimalWidget";
+    type Type = Minimal;
+    type ParentType = gtk::Widget;
+
+    fn class_init(klass: &mut Self::Class) {
+        klass.set_layout_manager_type::<BinLayout>();
+        klass.bind_template();
     }
-    minimal.upcast()
+
+    fn instance_init(obj: &InitializingObject<Self>) {
+        obj.init_template();
+    }
+}
+
+impl ObjectImpl for MinimalPriv {
+    fn constructed(&self) {
+        self.parent_constructed();
+    }
+}
+
+impl WidgetImpl for MinimalPriv {}
+
+impl Minimal {
+    pub fn new(config: &MusicConfig) -> Self {
+        let this: Self = Object::builder().build();
+        this.imp()
+            .image
+            .set_file(Some(&config.default_album_art_url));
+
+        this
+    }
 }

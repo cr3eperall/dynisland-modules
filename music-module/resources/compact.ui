@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <template class="MusicCompactWidget" parent="GtkWidget">
+        <property name="height-request">40</property>
+        <property name="width-request">280</property>
+        <property name="valign">center</property>
+        <property name="halign">center</property>
+        <child>
+            <object class="GtkBox">
+                <property name="orientation">horizontal</property>
+                <property name="valign">center</property>
+                <property name="halign">center</property>
+                <property name="vexpand">false</property>
+                <property name="hexpand">false</property>
+                <property name="homogeneous">false</property>
+                <child>
+                    <object class="GtkBox" id="album_art">
+                        <style>
+                            <class name="album-art" />
+                        </style>
+                        <property name="width-request">56</property>
+                        <property name="hexpand">false</property>
+                        <property name="homogeneous">false</property>
+                        <child>
+                            <object class="GtkImage" id="image">
+                                <property name="hexpand">true</property>
+                                <property name="valign">center</property>
+                                <property name="halign">center</property>
+                                <property name="overflow">hidden</property>
+                                <property name="height-request">30</property>
+                                <property name="width-request">30</property>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+                <child>
+                    <object class="ScrollingLabel" id="song_name">
+                        <style>
+                            <class name="song-name" />
+                        </style>
+                        <property name="halign">start</property>
+                        <property name="valign">center</property>
+                        <property name="width-request">168</property>
+                        <property name="height-request">40</property>
+                        <property name="hexpand">false</property>
+                        <property name="config-scroll-speed">20.0</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkBox" id="visualizer_container">
+                        <style>
+                            <class name="visualizer-container" />
+                        </style>
+                        <property name="width-request">56</property>
+                        <property name="hexpand">false</property>
+                        <property name="homogeneous">false</property>
+                        <property name="halign">center</property>
+                        <child>
+                            <object class="MusicVisualizerWidget" id="visualizer">
+                                <property name="width">40</property>
+                                <property name="height">40</property>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </template>
+</interface>

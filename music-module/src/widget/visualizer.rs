@@ -1,40 +1,133 @@
+use std::cell::RefCell;
+
 use dynisland_core::graphics::activity_widget::boxed_activity_mode::ActivityMode;
-use gdk::{gdk_pixbuf::Pixbuf, gio::MemoryInputStream};
-use glib::{object::Cast, Bytes};
-use gtk::{
-    prelude::{BoxExt, WidgetExt},
-    Widget,
+use gdk::{gdk_pixbuf::Pixbuf, gio::MemoryInputStream, prelude::ListModelExtManual};
+use glib::{
+    object::{Cast, ObjectExt},
+    subclass::{object::DerivedObjectProperties, types::ObjectSubclassIsExt},
+    Bytes, Properties,
 };
+use gtk::{prelude::WidgetExt, BinLayout};
 
 use crate::utils::{format_rgb_color, remap_num};
 
-pub fn get_visualizer(width: f32, height: f32) -> Widget {
-    let container = gtk::Box::builder()
-        .orientation(gtk::Orientation::Horizontal)
-        .height_request(height as i32)
-        .width_request(width as i32)
-        .halign(gtk::Align::Center)
-        .valign(gtk::Align::Center)
-        .homogeneous(true)
-        .vexpand(false)
-        .hexpand(false)
-        .build();
-    container.add_css_class("visualizer");
-    {
-        let bar_width = (width / 12.0) as i32;
-        for i in 0..6 {
-            let bar = gtk::Box::builder()
-                .halign(gtk::Align::Center)
-                .valign(gtk::Align::Center)
-                .width_request(bar_width)
-                .height_request(bar_width)
-                .build();
-            bar.add_css_class("bar");
-            bar.add_css_class(format!("bar-{i}").as_str());
-            container.append(&bar);
+use glib::{
+    subclass::{
+        object::{ObjectImpl, ObjectImplExt},
+        types::{ObjectSubclass, ObjectSubclassExt},
+        InitializingObject,
+    },
+    Object,
+};
+use gtk::{
+    subclass::widget::{
+        CompositeTemplateClass, CompositeTemplateInitializingExt, WidgetClassExt, WidgetImpl,
+    },
+    CompositeTemplate, TemplateChild,
+};
+
+glib::wrapper! {
+    pub struct Visualizer(ObjectSubclass<VisualizerPriv>)
+    @extends gtk::Widget;
+}
+
+#[derive(CompositeTemplate, Properties, Default)]
+#[properties(wrapper_type = Visualizer)]
+#[template(resource = "/com/github/cr3eperall/dynislandModules/musicModule/visualizer.ui")]
+pub struct VisualizerPriv {
+    #[template_child]
+    pub container: TemplateChild<gtk::Box>,
+
+    #[property(get, set, default_value = 30)]
+    pub width: RefCell<i32>,
+    #[property(get, set, default_value = 30)]
+    pub height: RefCell<i32>,
+}
+
+#[glib::object_subclass]
+impl ObjectSubclass for VisualizerPriv {
+    const NAME: &'static str = "MusicVisualizerWidget";
+    type Type = Visualizer;
+    type ParentType = gtk::Widget;
+
+    fn class_init(klass: &mut Self::Class) {
+        klass.set_layout_manager_type::<BinLayout>();
+        klass.bind_template();
+    }
+
+    fn instance_init(obj: &InitializingObject<Self>) {
+        obj.init_template();
+    }
+}
+
+impl ObjectImpl for VisualizerPriv {
+    fn constructed(&self) {
+        self.parent_constructed();
+    }
+    fn set_property(&self, _id: usize, value: &glib::Value, pspec: &glib::ParamSpec) {
+        match pspec.name() {
+            "width" => {
+                let width: i32 = value.get().unwrap();
+                let this = self.obj();
+                this.set_width_request(width);
+                let container = this.imp().container.clone();
+                container.set_width_request(width);
+
+                let box_size = (width as f32 / 12.0) as i32;
+
+                for child in container
+                    .observe_children()
+                    .iter::<glib::Object>()
+                    .flatten()
+                {
+                    let box_n = child.downcast::<gtk::Box>().unwrap();
+                    box_n.set_size_request(box_size, box_size);
+                }
+            }
+            "height" => {
+                let height: i32 = value.get().unwrap();
+                let this = self.obj();
+                this.set_height_request(height);
+                let container = this.imp().container.clone();
+                container.set_height_request(height);
+            }
+            _ => {
+                log::warn!("Visualizer: invalid property received: {}", pspec.name());
+            }
         }
     }
-    container.upcast()
+
+    fn property(&self, id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+        self.derived_property(id, pspec)
+    }
+
+    fn properties() -> &'static [glib::ParamSpec] {
+        Self::derived_properties()
+    }
+}
+
+impl WidgetImpl for VisualizerPriv {}
+
+impl Visualizer {
+    pub fn new(width: i32, height: i32) -> Self {
+        let this: Self = Object::builder().build();
+        this.set_size_request(width, height);
+        let container = this.imp().container.clone();
+        container.set_size_request(width, height);
+
+        let box_size = (width as f32 / 12.0) as i32;
+
+        for child in container
+            .observe_children()
+            .iter::<glib::Object>()
+            .flatten()
+        {
+            let box_n = child.downcast::<gtk::Box>().unwrap();
+            box_n.set_size_request(box_size, box_size);
+        }
+
+        this
+    }
 }
 
 /// Input format: "1,2,3,4,5,6\n"
@@ -152,17 +245,6 @@ pub fn get_gradient_css(gradient_mat: &[[[u8; 3]; 6]; 3]) -> String {
     )
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     #[test]
-//     fn test_remap_num() {
-//         let (range1, range2)= ((0, 100),(1,10));
-//         let val=11;
-//         assert_eq!(remap_num(val, range1.0, range1.1, range2.0, range2.1),1);
-//     }
-// }
-
 pub fn gradient_from_image_bytes(data: &Vec<u8>) -> [[[u8; 3]; 6]; 3] {
     if data.is_empty() {
         return [[[255_u8; 3]; 6]; 3];
@@ -205,7 +287,6 @@ pub fn gradient_from_image_bytes(data: &Vec<u8>) -> [[[u8; 3]; 6]; 3] {
             .map(|v: Vec<[u8; 3]>| [v[0], v[1], v[2], v[3], v[4], v[5]])
             .collect();
 
-        // let rows:Vec<[[u8;3]; 6]>=colors.chunks_exact(6).map(|v|[v[0], v[1], v[2], v[3], v[4], v[5]]).collect();
         [rows[0], rows[1], rows[2]]
     }
 }

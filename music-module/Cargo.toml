@@ -3,6 +3,7 @@ name = "music-module"
 version = "0.1.0"
 edition = "2021"
 license = "mit"
+build = "build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -28,10 +29,13 @@ ron = { workspace = true }
 abi_stable = { workspace = true }
 grass = { workspace = true }
 
+
 mpris = "2.0.1"
-reqwest = { version = "0.11.24", features = ["blocking"] }
+reqwest = { version = "0.12.7", features = ["blocking"] }
 serde_json = "1.0.113"
-# env_logger = "0.10.1"
+
+[build-dependencies]
+glib-build-tools = {workspace = true}
 
 [lib]
 name = "music_module"

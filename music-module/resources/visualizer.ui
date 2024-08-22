@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <template class="MusicVisualizerWidget" parent="GtkWidget">
+        <property name="valign">center</property>
+        <property name="halign">center</property>
+        <child>
+            <object class="GtkBox" id="container">
+                <style>
+                    <class name="visualizer" />
+                </style>
+                <property name="orientation">horizontal</property>
+                <property name="valign">center</property>
+                <property name="halign">center</property>
+                <property name="vexpand">false</property>
+                <property name="hexpand">false</property>
+                <property name="homogeneous">true</property>
+                <child>
+                    <object class="GtkBox" id="box_0">
+                        <style>
+                            <class name="bar" />
+                            <class name="bar-0" />
+                        </style>
+                        <property name="valign">center</property>
+                        <property name="halign">center</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkBox" id="box_1">
+                        <style>
+                            <class name="bar" />
+                            <class name="bar-1" />
+                        </style>
+                        <property name="valign">center</property>
+                        <property name="halign">center</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkBox" id="box_2">
+                        <style>
+                            <class name="bar" />
+                            <class name="bar-2" />
+                        </style>
+                        <property name="valign">center</property>
+                        <property name="halign">center</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkBox" id="box_3">
+                        <style>
+                            <class name="bar" />
+                            <class name="bar-3" />
+                        </style>
+                        <property name="valign">center</property>
+                        <property name="halign">center</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkBox" id="box_4">
+                        <style>
+                            <class name="bar" />
+                            <class name="bar-4" />
+                        </style>
+                        <property name="valign">center</property>
+                        <property name="halign">center</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkBox" id="box_5">
+                        <style>
+                            <class name="bar" />
+                            <class name="bar-5" />
+                        </style>
+                        <property name="valign">center</property>
+                        <property name="halign">center</property>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </template>
+</interface>

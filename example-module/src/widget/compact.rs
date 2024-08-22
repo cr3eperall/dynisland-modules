@@ -8,18 +8,17 @@ use dynisland_core::{
 use glib::{
     subclass::{
         object::{ObjectImpl, ObjectImplExt},
-        types::{ObjectSubclass, ObjectSubclassExt, ObjectSubclassIsExt},
+        types::{ObjectSubclass, ObjectSubclassIsExt},
         InitializingObject,
     },
     types::StaticTypeExt,
     Object,
 };
 use gtk::{
-    prelude::WidgetExt,
     subclass::widget::{
         CompositeTemplateClass, CompositeTemplateInitializingExt, WidgetClassExt, WidgetImpl,
     },
-    CompositeTemplate, TemplateChild,
+    BinLayout, CompositeTemplate, TemplateChild,
 };
 
 #[derive(CompositeTemplate, Default)]
@@ -35,12 +34,13 @@ pub struct CompactPriv {
 
 #[glib::object_subclass]
 impl ObjectSubclass for CompactPriv {
-    const NAME: &'static str = "CompactWidget";
+    const NAME: &'static str = "ExampleCompactWidget";
     type Type = Compact;
     type ParentType = gtk::Widget;
 
     fn class_init(klass: &mut Self::Class) {
         RollingChar::ensure_type();
+        klass.set_layout_manager_type::<BinLayout>();
         klass.bind_template();
     }
 
@@ -51,19 +51,11 @@ impl ObjectSubclass for CompactPriv {
 
 impl ObjectImpl for CompactPriv {
     fn constructed(&self) {
-        // Call "constructed" on parent
         self.parent_constructed();
     }
 }
 
-impl WidgetImpl for CompactPriv {
-    fn size_allocate(&self, width: i32, height: i32, baseline: i32) {
-        self.obj()
-            .first_child()
-            .unwrap()
-            .size_allocate(&gdk::Rectangle::new(0, 0, width, height), baseline);
-    }
-}
+impl WidgetImpl for CompactPriv {}
 
 impl Compact {
     /// registered properties:

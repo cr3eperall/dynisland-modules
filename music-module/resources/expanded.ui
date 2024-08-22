@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <template class="MusicExpandedWidget" parent="GtkWidget">
+        <property name="height-request">300</property>
+        <property name="width-request">450</property>
+        <property name="valign">center</property>
+        <property name="halign">center</property>
+        <child>
+            <object class="GtkBox">
+                <property name="height-request">300</property>
+                <property name="width-request">450</property>
+                <property name="valign">center</property>
+                <property name="halign">center</property>
+                <property name="vexpand">false</property>
+                <property name="hexpand">false</property>
+                <property name="orientation">vertical</property>
+                <child>
+                    <object class="GtkBox" id="info">
+                        <style>
+                            <class name="info" />
+                        </style>
+                        <property name="height-request">135</property>
+                        <property name="width-request">450</property>
+                        <property name="valign">center</property>
+                        <property name="halign">center</property>
+                        <property name="vexpand">false</property>
+                        <property name="hexpand">false</property>
+                        <child>
+                            <object class="GtkBox" id="album_art">
+                                <style>
+                                    <class name="album-art" />
+                                </style>
+                                <property name="width-request">135</property>
+                                <child>
+                                    <object class="GtkImage" id="image">
+                                        <property name="height-request">95</property>
+                                        <property name="width-request">95</property>
+                                        <property name="valign">center</property>
+                                        <property name="halign">center</property>
+                                        <property name="hexpand">true</property>
+                                        <property name="overflow">hidden</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkBox" id="info_names1">
+                                <style>
+                                    <class name="info-names1" />
+                                </style>
+                                <property name="height-request">135</property>
+                                <property name="width-request">225</property>
+                                <property name="valign">center</property>
+                                <property name="halign">start</property>
+                                <property name="vexpand">false</property>
+                                <property name="hexpand">false</property>
+                                <property name="homogeneous">true</property>
+                                <child>
+                                    <object class="GtkBox" id="info_names2">
+                                        <style>
+                                            <class name="info-names2" />
+                                        </style>
+                                        <property name="orientation">vertical</property>
+                                        <property name="width-request">225</property>
+                                        <property name="valign">center</property>
+                                        <property name="halign">start</property>
+                                        <property name="vexpand">false</property>
+                                        <property name="hexpand">false</property>
+                                        <child>
+                                            <object class="ScrollingLabel" id="song_name">
+                                                <style>
+                                                    <class name="song-name" />
+                                                </style>
+                                                <property name="text">Song name</property>
+                                                <property name="halign">start</property>
+                                                <property name="valign">center</property>
+                                                <property name="width-request">202</property>
+                                                <property name="hexpand">false</property>
+                                                <property name="config-scroll-speed">20.0</property>
+                                            </object>
+                                        </child>
+                                        <child>
+                                            <object class="GtkLabel" id="artist_name">
+                                                <style>
+                                                    <class name="artist-name" />
+                                                </style>
+                                                <property name="label">Artist Name</property>
+                                                <property name="halign">start</property>
+                                                <property name="valign">center</property>
+                                                <property name="wrap">false</property>
+                                                <property name="max-width-chars">20</property>
+                                                <property name="ellipsize">end</property>
+                                                <property name="hexpand">true</property>
+                                            </object>
+                                        </child>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="MusicVisualizerWidget" id="visualizer">
+                                <property name="width">90</property>
+                                <property name="height">90</property>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkBox" id="progress">
+                        <style>
+                            <class name="progress" />
+                        </style>
+                        <property name="height-request">45</property>
+                        <property name="width-request">450</property>
+                        <property name="valign">center</property>
+                        <property name="halign">center</property>
+                        <property name="vexpand">false</property>
+                        <property name="hexpand">false</property>
+                        <child>
+                            <object class="GtkLabel" id="elapsed_time">
+                                <style>
+                                    <class name="elapsed-time" />
+                                </style>
+                                <property name="label">--:--</property>
+                                <property name="width-request">68</property>
+                                <property name="margin-start">22</property>
+                                <property name="valign">center</property>
+                                <property name="halign">center</property>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkScale" id="progress_bar">
+                                <style>
+                                    <class name="progress-bar" />
+                                </style>
+                                <property name="width-request">270</property>
+                                <property name="draw-value">false</property>
+                                <property name="valign">center</property>
+                                <property name="halign">center</property>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkLabel" id="remaining_time">
+                                <style>
+                                    <class name="remaining-time" />
+                                </style>
+                                <property name="label">--:--</property>
+                                <property name="width-request">68</property>
+                                <property name="margin-end">22</property>
+                                <property name="valign">center</property>
+                                <property name="halign">center</property>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkBox" id="controls">
+                        <style>
+                            <class name="controls" />
+                        </style>
+                        <property name="height-request">120</property>
+                        <property name="width-request">450</property>
+                        <property name="valign">center</property>
+                        <property name="halign">center</property>
+                        <property name="vexpand">false</property>
+                        <property name="hexpand">false</property>
+                        <property name="homogeneous">true</property>
+                        <child>
+                            <object class="GtkButton" id="shuffle">
+                                <style>
+                                    <class name="shuffle" />
+                                </style>
+                                <signal name="clicked" handler="handle_shuffle" swapped="true" />
+                                <property name="icon-name">media-playlist-shuffle-symbolic</property>
+                                <property name="height-request">68</property>
+                                <property name="width-request">68</property>
+                                <property name="valign">center</property>
+                                <property name="halign">center</property>
+                                <property name="sensitive">false</property>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkButton" id="previous">
+                                <style>
+                                    <class name="previous" />
+                                </style>
+                                <signal name="clicked" handler="handle_previous" swapped="true" />
+                                <property name="icon-name">media-seek-backward</property>
+                                <property name="height-request">90</property>
+                                <property name="width-request">90</property>
+                                <property name="valign">center</property>
+                                <property name="halign">center</property>
+                                <property name="sensitive">false</property>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkButton" id="play_pause">
+                                <style>
+                                    <class name="play-pause" />
+                                </style>
+                                <signal name="clicked" handler="handle_play_pause" swapped="true" />
+                                <property name="icon-name">media-playback-start-symbolic</property>
+                                <property name="height-request">90</property>
+                                <property name="width-request">90</property>
+                                <property name="valign">center</property>
+                                <property name="halign">center</property>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkButton" id="next">
+                                <style>
+                                    <class name="next" />
+                                </style>
+                                <signal name="clicked" handler="handle_next" swapped="true" />
+                                <property name="icon-name">media-seek-forward</property>
+                                <property name="height-request">90</property>
+                                <property name="width-request">90</property>
+                                <property name="valign">center</property>
+                                <property name="halign">center</property>
+                                <property name="sensitive">false</property>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkButton" id="repeat">
+                                <style>
+                                    <class name="loop" />
+                                </style>
+                                <signal name="clicked" handler="handle_loop" swapped="true" />
+                                <property name="icon-name">media-playlist-repeat-symbolic</property>
+                                <property name="height-request">68</property>
+                                <property name="width-request">68</property>
+                                <property name="valign">center</property>
+                                <property name="halign">center</property>
+                                <property name="sensitive">false</property>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </template>
+</interface>

@@ -5,15 +5,16 @@ glib::wrapper! {
 use glib::{
     subclass::{
         object::{ObjectImpl, ObjectImplExt},
-        types::{ObjectSubclass, ObjectSubclassExt},
+        types::ObjectSubclass,
         InitializingObject,
     },
     Object,
 };
 use gtk::{
-    prelude::WidgetExt,
-    subclass::widget::{CompositeTemplateClass, CompositeTemplateInitializingExt, WidgetImpl},
-    CompositeTemplate,
+    subclass::widget::{
+        CompositeTemplateClass, CompositeTemplateInitializingExt, WidgetClassExt, WidgetImpl,
+    },
+    BinLayout, CompositeTemplate,
 };
 
 #[derive(CompositeTemplate, Default)]
@@ -22,11 +23,12 @@ pub struct ExpandedPriv {}
 
 #[glib::object_subclass]
 impl ObjectSubclass for ExpandedPriv {
-    const NAME: &'static str = "ExpandedWidget";
+    const NAME: &'static str = "ExampleExpandedWidget";
     type Type = Expanded;
     type ParentType = gtk::Widget;
 
     fn class_init(klass: &mut Self::Class) {
+        klass.set_layout_manager_type::<BinLayout>();
         klass.bind_template();
     }
 
@@ -37,19 +39,11 @@ impl ObjectSubclass for ExpandedPriv {
 
 impl ObjectImpl for ExpandedPriv {
     fn constructed(&self) {
-        // Call "constructed" on parent
         self.parent_constructed();
     }
 }
 
-impl WidgetImpl for ExpandedPriv {
-    fn size_allocate(&self, width: i32, height: i32, baseline: i32) {
-        self.obj()
-            .first_child()
-            .unwrap()
-            .size_allocate(&gdk::Rectangle::new(0, 0, width, height), baseline);
-    }
-}
+impl WidgetImpl for ExpandedPriv {}
 
 impl Expanded {
     pub fn new() -> Self {

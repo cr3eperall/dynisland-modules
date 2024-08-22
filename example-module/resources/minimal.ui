@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-    <template class="MinimalWidget" parent="GtkWidget">
+    <template class="ExampleMinimalWidget" parent="GtkWidget">
         <property name="valign">center</property>
         <property name="halign">center</property>
         <child>

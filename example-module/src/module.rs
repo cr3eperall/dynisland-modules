@@ -13,20 +13,14 @@ use abi_stable::{
 use anyhow::Context;
 use dynisland_abi::module::{ModuleType, SabiModule, SabiModule_TO, UIServerCommand};
 use env_logger::Env;
-use glib::types::StaticTypeExt;
 use log::Level;
 use ron::ser::PrettyConfig;
 use serde::{Deserialize, Serialize};
 
-use dynisland_core::{
-    base_module::{BaseModule, ProducerRuntime},
-    graphics::widgets::scrolling_label::ScrollingLabel,
-};
-//FIXME fix logging
+use dynisland_core::base_module::{BaseModule, ProducerRuntime};
 
 use super::{widget, NAME};
 
-/// For now this is just used to test new code
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(default)]
 pub struct ExampleConfig {
@@ -37,7 +31,6 @@ pub struct ExampleConfig {
     pub duration: u64,
 }
 
-// impl ModuleConfig for ExampleConfig {}
 impl Default for ExampleConfig {
     fn default() -> Self {
         Self {
@@ -58,8 +51,9 @@ pub struct ExampleModule {
 #[sabi_extern_fn]
 pub fn new(app_send: RSender<UIServerCommand>) -> RResult<ModuleType, RBoxError> {
     env_logger::Builder::from_env(Env::default().default_filter_or(Level::Warn.as_str())).init();
-    gtk::gio::resources_register_include!("compiled.gresource")
-        .expect("Failed to register resources.");
+    if let Err(err) = gtk::gio::resources_register_include!("compiled.gresource") {
+        return RErr(RBoxError::new(err));
+    }
 
     let base_module = BaseModule::new(NAME, app_send);
     let this = ExampleModule {

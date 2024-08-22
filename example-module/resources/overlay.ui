@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-    <template class="OverlayWidget" parent="GtkWidget">
+    <template class="ExampleOverlayWidget" parent="GtkWidget">
         <property name="height-request">900</property>
         <property name="width-request">1600</property>
         <property name="valign">center</property>

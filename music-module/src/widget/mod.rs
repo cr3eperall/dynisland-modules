@@ -5,18 +5,18 @@ pub mod visualizer;
 
 use std::time::Duration;
 
+use compact::Compact;
 use dynisland_core::{
     cast_dyn_any,
     dynamic_activity::DynamicActivity,
     dynamic_property::PropertyUpdate,
-    graphics::{
-        activity_widget::{boxed_activity_mode::ActivityMode, ActivityWidget},
-        widgets::scrolling_label::ScrollingLabel,
-    },
+    graphics::activity_widget::{boxed_activity_mode::ActivityMode, ActivityWidget},
 };
+use expanded::Expanded;
 use gdk::{gdk_pixbuf::Pixbuf, gio::MemoryInputStream};
-use glib::Bytes;
-use gtk::{prelude::*, GestureClick, Image, Widget};
+use glib::{subclass::types::ObjectSubclassIsExt, Bytes};
+use gtk::{prelude::*, GestureClick};
+use minimal::Minimal;
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::module::MusicConfig;
@@ -66,22 +66,20 @@ pub fn get_activity(
 
     //create activity widget
     let activity_widget = activity.get_activity_widget();
-    // set_act_widget(&mut activity_widget);
+
     //get widgets
-    let minimal = minimal::get_minimal(config);
-    let compact = compact::get_compact(config);
-    let expanded = expanded::get_expanded(config, action_tx);
-    // let overlay = Self::get_overlay();
+    let minimal = Minimal::new(config);
+    let compact = Compact::new(config);
+    let expanded = Expanded::new(config, action_tx);
 
     //load widgets in the activity widget
-    activity_widget.set_minimal_mode_widget(&minimal);
-    activity_widget.set_compact_mode_widget(&compact);
-    activity_widget.set_expanded_mode_widget(&expanded);
-    // activity_widget.set_overlay_mode_widget(&overlay);
+    activity_widget.set_minimal_mode_widget(&minimal.clone().upcast());
+    activity_widget.set_compact_mode_widget(&compact.clone().upcast());
+    activity_widget.set_expanded_mode_widget(&expanded.clone().upcast());
 
-    setup_music_metadata_prop(&mut activity, &activity_widget);
+    setup_music_metadata_prop(&mut activity, &compact, &expanded);
 
-    setup_album_art_prop(&mut activity, &activity_widget);
+    setup_album_art_prop(&mut activity, &minimal, &compact, &expanded);
 
     setup_visualizer_data_prop(&mut activity, &activity_widget);
 
@@ -89,10 +87,16 @@ pub fn get_activity(
 
     setup_music_time_prop(&mut activity, &activity_widget);
 
-    setup_playback_status_prop(&mut activity, &activity_widget);
+    setup_playback_status_prop(&mut activity, &expanded);
 
-    setup_scrolling_label_speed_prop(&mut activity, &activity_widget);
+    setup_scrolling_label_speed_prop(&mut activity, &compact, &expanded);
 
+    register_mode_gestures(activity_widget);
+
+    activity
+}
+
+fn register_mode_gestures(activity_widget: ActivityWidget) {
     let press_gesture = gtk::GestureClick::new();
     press_gesture.set_button(gdk::BUTTON_PRIMARY);
 
@@ -106,18 +110,10 @@ pub fn get_activity(
             return;
         }
         match aw.mode() {
-            ActivityMode::Minimal => {
-                // m1.lock().await.set(ActivityMode::Compact).unwrap();
-            }
             ActivityMode::Compact => {
                 aw.set_mode(ActivityMode::Expanded);
             }
-            ActivityMode::Expanded => {
-                // m1.lock().await.set(ActivityMode::Overlay).unwrap();
-            }
-            ActivityMode::Overlay => {
-                // m1.lock().await.set(ActivityMode::Minimal).unwrap();
-            }
+            ActivityMode::Minimal | ActivityMode::Expanded | ActivityMode::Overlay => {}
         }
     });
 
@@ -135,64 +131,28 @@ pub fn get_activity(
             return;
         }
         match aw.mode() {
-            ActivityMode::Minimal => {
-                // m1.lock().await.set(ActivityMode::Compact).unwrap();
-            }
             ActivityMode::Compact => {
                 aw.set_mode(ActivityMode::Minimal);
             }
             ActivityMode::Expanded => {
                 aw.set_mode(ActivityMode::Compact);
             }
-            ActivityMode::Overlay => {
-                // m1.lock().await.set(ActivityMode::Minimal).unwrap();
-            }
+            ActivityMode::Minimal | ActivityMode::Overlay => {}
         }
     });
     activity_widget.add_controller(release_gesture);
-
-    activity
 }
 
-fn setup_playback_status_prop(activity: &mut DynamicActivity, activity_widget: &ActivityWidget) {
+fn setup_playback_status_prop(activity: &mut DynamicActivity, expanded: &Expanded) {
     activity
         .add_dynamic_property("playback-status", UIPlaybackStatus::default())
         .unwrap();
     {
-        let control_container = activity_widget
-            .expanded_mode_widget()
-            .unwrap()
-            .first_child()
-            .unwrap()
-            .next_sibling()
-            .unwrap()
-            .next_sibling()
-            .unwrap();
-        let shuffle = control_container
-            .first_child()
-            .unwrap()
-            .downcast::<gtk::Button>()
-            .unwrap();
-        let previous = shuffle
-            .next_sibling()
-            .unwrap()
-            .downcast::<gtk::Button>()
-            .unwrap();
-        let play_pause = previous
-            .next_sibling()
-            .unwrap()
-            .downcast::<gtk::Button>()
-            .unwrap();
-        let next = play_pause
-            .next_sibling()
-            .unwrap()
-            .downcast::<gtk::Button>()
-            .unwrap();
-        let repeat = next
-            .next_sibling()
-            .unwrap()
-            .downcast::<gtk::Button>()
-            .unwrap();
+        let shuffle = expanded.imp().shuffle.clone();
+        let previous = expanded.imp().previous.clone();
+        let play_pause = expanded.imp().play_pause.clone();
+        let next = expanded.imp().next.clone();
+        let repeat = expanded.imp().repeat.clone();
 
         activity
             .subscribe_to_property("playback-status", move |new_value| {
@@ -217,11 +177,9 @@ fn setup_playback_status_prop(activity: &mut DynamicActivity, activity_widget: &
 
                 match playback_status.can_go_previous {
                     true => {
-                        // previous.set_icon_name("media-seek-backward-symbolic");
                         previous.set_sensitive(true);
                     }
                     false => {
-                        // previous.set_icon_name("list-remove-symbolic");
                         previous.set_sensitive(false);
                     }
                 }
@@ -229,7 +187,6 @@ fn setup_playback_status_prop(activity: &mut DynamicActivity, activity_widget: &
                     true => {
                         match playback_status.playback_status {
                             mpris::PlaybackStatus::Playing => {
-                                //TODO find another icon because i don't like it
                                 play_pause.set_icon_name("media-playback-pause-symbolic");
                             }
                             mpris::PlaybackStatus::Paused => {
@@ -249,12 +206,10 @@ fn setup_playback_status_prop(activity: &mut DynamicActivity, activity_widget: &
 
                 match playback_status.can_go_next {
                     true => {
-                        // next.set_icon_name("media-seek-forward-symbolic");
                         next.set_sensitive(true);
                     }
                     false => {
                         next.set_sensitive(false);
-                        // next.set_icon_name("list-remove-symbolic");
                     }
                 }
                 match playback_status.can_loop {
@@ -287,28 +242,14 @@ fn setup_music_time_prop(activity: &mut DynamicActivity, activity_widget: &Activ
         .add_dynamic_property("music-time", (Duration::ZERO, Duration::ZERO))
         .unwrap();
     {
-        let progress_info = activity_widget
+        let expanded = activity_widget
             .expanded_mode_widget()
             .unwrap()
-            .first_child()
-            .unwrap()
-            .next_sibling()
+            .downcast::<Expanded>()
             .unwrap();
-        let elapsed = progress_info
-            .first_child()
-            .unwrap()
-            .downcast::<gtk::Label>()
-            .unwrap();
-        let progress_bar = elapsed
-            .next_sibling()
-            .unwrap()
-            .downcast::<gtk::Scale>()
-            .unwrap();
-        let remaining = progress_bar
-            .next_sibling()
-            .unwrap()
-            .downcast::<gtk::Label>()
-            .unwrap();
+        let elapsed = expanded.imp().elapsed_time.clone();
+        let progress_bar = expanded.imp().progress_bar.clone();
+        let remaining = expanded.imp().remaining_time.clone();
         let aw = activity_widget.clone();
         activity
             .subscribe_to_property("music-time", move |new_value| {
@@ -319,7 +260,6 @@ fn setup_music_time_prop(activity: &mut DynamicActivity, activity_widget: &Activ
 
                     if !progress_bar.has_css_class("dragging") {
                         progress_bar.set_value(current_time.as_millis() as f64);
-                        // log::warn!("{}",progress_bar.value());
                     }
                     current_time = Duration::from_secs(current_time.as_secs());
                     total_duration = Duration::from_secs(total_duration.as_secs());
@@ -387,39 +327,18 @@ fn setup_visualizer_data_prop(activity: &mut DynamicActivity, activity_widget: &
     }
 }
 
-fn setup_album_art_prop(activity: &mut DynamicActivity, activity_widget: &ActivityWidget) {
+fn setup_album_art_prop(
+    activity: &mut DynamicActivity,
+    minimal: &Minimal,
+    compact: &Compact,
+    expanded: &Expanded,
+) {
     let empty: Vec<u8> = Vec::new();
     activity.add_dynamic_property("album-art", empty).unwrap();
     {
-        let album_art = activity_widget
-            .expanded_mode_widget()
-            .unwrap()
-            .first_child()
-            .unwrap()
-            .first_child()
-            .unwrap()
-            .first_child()
-            .unwrap()
-            .downcast::<Image>()
-            .unwrap();
-        let compact_album_art = activity_widget
-            .compact_mode_widget()
-            .unwrap()
-            .first_child()
-            .unwrap()
-            .first_child()
-            .unwrap()
-            .downcast::<Image>()
-            .unwrap();
-        let minimal_album_art = activity_widget
-            .minimal_mode_widget()
-            .unwrap()
-            .first_child()
-            .unwrap()
-            .first_child()
-            .unwrap()
-            .downcast::<Image>()
-            .unwrap();
+        let expanded_album_art = expanded.imp().image.clone();
+        let compact_album_art = compact.imp().image.clone();
+        let minimal_album_art = minimal.imp().image.clone();
 
         activity
             .subscribe_to_property("album-art", move |new_value| {
@@ -434,9 +353,8 @@ fn setup_album_art_prop(activity: &mut DynamicActivity, activity_widget: &Activi
                 if pixbuf.is_none() {
                     pixbuf = Pixbuf::new(gdk::gdk_pixbuf::Colorspace::Rgb, true, 8, 10, 10);
                 }
-                // let mut pixbuf=pixbuf.unwrap().scale_simple(6, 3, gdk::gdk_pixbuf::InterpType::Bilinear);
                 let texture = gdk::Texture::for_pixbuf(&pixbuf.unwrap());
-                album_art.set_paintable(Some(&texture));
+                expanded_album_art.set_paintable(Some(&texture));
                 compact_album_art.set_paintable(Some(&texture));
                 minimal_album_art.set_paintable(Some(&texture));
             })
@@ -444,47 +362,24 @@ fn setup_album_art_prop(activity: &mut DynamicActivity, activity_widget: &Activi
     }
 }
 
-fn setup_music_metadata_prop(activity: &mut DynamicActivity, activity_widget: &ActivityWidget) {
+fn setup_music_metadata_prop(
+    activity: &mut DynamicActivity,
+    compact: &Compact,
+    expanded: &Expanded,
+) {
     activity
         .add_dynamic_property("music-metadata", (String::new(), String::new()))
         .unwrap();
     {
-        let music_info_container2: Widget = activity_widget
-            .expanded_mode_widget()
-            .unwrap()
-            .first_child()
-            .unwrap()
-            .first_child()
-            .unwrap()
-            .next_sibling()
-            .unwrap()
-            .first_child()
-            .unwrap();
-        let song_name_widget = music_info_container2
-            .first_child()
-            .unwrap()
-            .downcast::<ScrollingLabel>()
-            .unwrap();
-        let artist_name_widget = song_name_widget
-            .next_sibling()
-            .unwrap()
-            .downcast::<gtk::Label>()
-            .unwrap();
-        let compact_song_name_widget = activity_widget
-            .compact_mode_widget()
-            .unwrap()
-            .first_child()
-            .unwrap()
-            .next_sibling()
-            .unwrap()
-            .downcast::<ScrollingLabel>()
-            .unwrap();
+        let song_name_widget = expanded.imp().song_name.clone();
+        let artist_name_widget = expanded.imp().artist_name.clone();
+        let compact_song_name_widget = compact.imp().song_name.clone();
         activity
             .subscribe_to_property("music-metadata", move |new_value| {
                 let (song_name, artist_name) = cast_dyn_any!(new_value, (String, String)).unwrap();
-                song_name_widget.label().set_label(song_name);
+                song_name_widget.set_text(song_name.as_str());
                 artist_name_widget.set_label(artist_name);
-                compact_song_name_widget.label().set_label(song_name);
+                compact_song_name_widget.set_text(song_name.as_str());
             })
             .unwrap();
     }
@@ -492,40 +387,18 @@ fn setup_music_metadata_prop(activity: &mut DynamicActivity, activity_widget: &A
 
 fn setup_scrolling_label_speed_prop(
     activity: &mut DynamicActivity,
-    activity_widget: &ActivityWidget,
+    compact: &Compact,
+    expanded: &Expanded,
 ) {
     activity
         .add_dynamic_property("scrolling-label-speed", 30.0_f32)
         .unwrap();
     {
-        let expanded_label = activity_widget
-            .expanded_mode_widget()
-            .unwrap()
-            .first_child()
-            .unwrap()
-            .first_child()
-            .unwrap()
-            .next_sibling()
-            .unwrap()
-            .first_child()
-            .unwrap()
-            .first_child()
-            .unwrap()
-            .downcast::<ScrollingLabel>()
-            .unwrap();
-        let compact_label = activity_widget
-            .compact_mode_widget()
-            .unwrap()
-            .first_child()
-            .unwrap()
-            .next_sibling()
-            .unwrap()
-            .downcast::<ScrollingLabel>()
-            .unwrap();
+        let expanded_label = expanded.imp().song_name.clone();
+        let compact_label = compact.imp().song_name.clone();
         activity
             .subscribe_to_property("scrolling-label-speed", move |new_value| {
                 let data = cast_dyn_any!(new_value, f32).unwrap();
-                // log::info!("setting speed: {}", data);
                 expanded_label.set_config_scroll_speed(*data);
                 compact_label.set_config_scroll_speed(*data);
             })

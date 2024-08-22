@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-    <template class="CompactWidget" parent="GtkWidget">
+    <template class="ExampleCompactWidget" parent="GtkWidget">
         <property name="height-request">40</property>
         <property name="width-request">220</property>
         <property name="valign">center</property>

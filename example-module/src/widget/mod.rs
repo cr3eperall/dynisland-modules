@@ -5,14 +5,12 @@ mod overlay;
 
 use compact::Compact;
 use dynisland_core::{
-    cast_dyn_any,
     dynamic_activity::DynamicActivity,
     dynamic_property::PropertyUpdate,
     graphics::activity_widget::{boxed_activity_mode::ActivityMode, ActivityWidget},
 };
 
 use expanded::Expanded;
-use glib::subclass::types::ObjectSubclassIsExt;
 use gtk::{prelude::*, GestureClick};
 use minimal::Minimal;
 use overlay::Overlay;
@@ -39,12 +37,12 @@ pub fn get_activity(
     activity_widget.set_expanded_mode_widget(&expanded.clone().upcast());
     activity_widget.set_overlay_mode_widget(&overlay.clone().upcast());
 
-    add_mode_gestures(activity_widget);
+    register_mode_gestures(activity_widget);
 
     activity
 }
 
-fn add_mode_gestures(activity_widget: ActivityWidget) {
+fn register_mode_gestures(activity_widget: ActivityWidget) {
     let primary_gesture = gtk::GestureClick::new();
     primary_gesture.set_button(gdk::BUTTON_PRIMARY);
 

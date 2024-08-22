@@ -457,33 +457,3 @@ impl MprisPlayer {
             .find_active()?)
     }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-
-//     // #[test]
-//     // fn test_play_pause() {
-//     //     let player=Cider2PlayerInfo::new();
-//     //     player.play().unwrap();
-
-//     //     std::thread::sleep(Duration::from_millis(500));
-//     //     assert_eq!(player.get_playback_status().unwrap(), mpris::PlaybackStatus::Playing);
-//     //     player.play_pause().unwrap();
-//     //     std::thread::sleep(Duration::from_millis(500));
-//     //     assert_eq!(player.get_playback_status().unwrap(), mpris::PlaybackStatus::Paused);
-//     // }
-//     #[test]
-//     fn test_cider_current_song_info() {
-//         let player = Cider2Player::new();
-//         let current_song_info = player.get_current_song_info().await.unwrap();
-//         println!("song info: {:?}", current_song_info);
-//     }
-
-//     #[test]
-//     fn test_mpris_current_song_info() {
-//         let player = MprisPlayer::new("cider");
-//         let current_song_info = player.get_current_song_info().await.unwrap();
-//         println!("song info: {:?}", current_song_info);
-//     }
-// }

@@ -49,7 +49,6 @@ const CHECK_DELAY: u64 = 5000;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(default)]
 pub struct MusicConfig {
-    //allowed_players: cider2, (?cider1, ?spotify...)
     pub preferred_player: String,
     pub default_album_art_url: String,
     pub scrolling_label_speed: f32,
@@ -81,6 +80,9 @@ pub struct MusicModule {
 #[sabi_extern_fn]
 pub fn new(app_send: RSender<UIServerCommand>) -> RResult<ModuleType, RBoxError> {
     env_logger::Builder::from_env(Env::default().default_filter_or(Level::Warn.as_str())).init();
+    if let Err(err) = gtk::gio::resources_register_include!("compiled.gresource") {
+        return RErr(RBoxError::new(err));
+    }
 
     let base_module = BaseModule::new(NAME, app_send.clone());
     let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
@@ -125,20 +127,7 @@ pub fn new(app_send: RSender<UIServerCommand>) -> RResult<ModuleType, RBoxError>
 impl SabiModule for MusicModule {
     fn init(&self) {
         let base_module = self.base_module.clone();
-        // let action_tx = self.action_channel.0.clone();
-        // let config = self.config.clone();
         glib::MainContext::default().spawn_local(async move {
-            //create activity
-            // let act = widget::get_activity(
-            //     base_module.prop_send(),
-            //     NAME,
-            //     "music-activity",
-            //     &config,
-            //     action_tx,
-            // );
-
-            // //register activity and data producer
-            // base_module.register_activity(act).unwrap();
             base_module.register_producer(self::producer);
         });
 
@@ -205,9 +194,8 @@ fn producer(module: &MusicModule) {
                 .get_activity("music-activity")
                 .is_err()
             {
-                // let base_module = module.base_module.clone();
                 let action_tx = module.action_channel.0.clone();
-                // let config = config.clone();
+
                 //create activity
                 let act = widget::get_activity(
                     module.base_module.prop_send(),
