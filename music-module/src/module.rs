@@ -139,7 +139,7 @@ impl SabiModule for MusicModule {
             gtk::style_context_add_provider_for_display(
                 &gdk::Display::default().unwrap(),
                 &fallback_provider,
-                gtk::STYLE_PROVIDER_PRIORITY_SETTINGS,
+                gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
             );
         });
     }

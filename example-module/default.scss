@@ -1,23 +1,20 @@
 .exampleActivity0,
 .exampleActivity1 {
-    .mode-minimal {
+    &.in-minimal-mode {
         background-color: rgb(134, 19, 38);
-
-        // scrolling-label{
-        //     border: 2px solid rgb(0, 245, 45);
-        //     border-radius: 50px;
-        // }
     }
+    .mode-minimal{
+        background-color: rgb(134, 19, 38);
+    }
+    transition: background-color linear 1s;
 
+    &.in-compact-mode {
+        background-color: rgba(128, 128, 128, 1);
+    }
     .mode-compact {
         background-color: rgba(128, 128, 128, 1);
-
         rolling-number {
             font-size: 18px;
-            // border: 1px solid black;
-            // label {
-            //     border: 1px solid black;
-            // }
         }
 
         rolling-number :backdrop {
@@ -34,7 +31,6 @@
     }
 
     .activity-background {
-        background-color: rgb(0, 0, 0);
         color: white;
     }
 }
