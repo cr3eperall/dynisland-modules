@@ -12,7 +12,8 @@ use glib::{
 };
 use gtk::{
     subclass::widget::{
-        CompositeTemplateClass, CompositeTemplateInitializingExt, WidgetClassExt, WidgetImpl,
+        CompositeTemplateClass, CompositeTemplateDisposeExt, CompositeTemplateInitializingExt,
+        WidgetClassExt, WidgetImpl,
     },
     BinLayout, CompositeTemplate,
 };
@@ -40,6 +41,9 @@ impl ObjectSubclass for ExpandedPriv {
 impl ObjectImpl for ExpandedPriv {
     fn constructed(&self) {
         self.parent_constructed();
+    }
+    fn dispose(&self) {
+        self.dispose_template();
     }
 }
 

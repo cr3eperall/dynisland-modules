@@ -7,7 +7,7 @@ use glib::{
     subclass::{object::DerivedObjectProperties, types::ObjectSubclassIsExt},
     Bytes, Properties,
 };
-use gtk::{prelude::WidgetExt, BinLayout};
+use gtk::{prelude::WidgetExt, subclass::widget::CompositeTemplateDisposeExt, BinLayout};
 
 use crate::utils::{format_rgb_color, remap_num};
 
@@ -60,9 +60,13 @@ impl ObjectSubclass for VisualizerPriv {
     }
 }
 
+#[glib::derived_properties]
 impl ObjectImpl for VisualizerPriv {
     fn constructed(&self) {
         self.parent_constructed();
+    }
+    fn dispose(&self) {
+        self.dispose_template();
     }
     fn set_property(&self, _id: usize, value: &glib::Value, pspec: &glib::ParamSpec) {
         match pspec.name() {
@@ -95,14 +99,6 @@ impl ObjectImpl for VisualizerPriv {
                 log::warn!("Visualizer: invalid property received: {}", pspec.name());
             }
         }
-    }
-
-    fn property(&self, id: usize, pspec: &glib::ParamSpec) -> glib::Value {
-        self.derived_property(id, pspec)
-    }
-
-    fn properties() -> &'static [glib::ParamSpec] {
-        Self::derived_properties()
     }
 }
 

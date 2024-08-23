@@ -1,7 +1,3 @@
-glib::wrapper! {
-    pub struct Minimal(ObjectSubclass<MinimalPriv>)
-    @extends gtk::Widget;
-}
 use dynisland_core::{
     cast_dyn_any, dynamic_activity::DynamicActivity,
     graphics::widgets::scrolling_label::ScrollingLabel,
@@ -17,10 +13,16 @@ use glib::{
 };
 use gtk::{
     subclass::widget::{
-        CompositeTemplateClass, CompositeTemplateInitializingExt, WidgetClassExt, WidgetImpl,
+        CompositeTemplateClass, CompositeTemplateDisposeExt, CompositeTemplateInitializingExt,
+        WidgetClassExt, WidgetImpl,
     },
     BinLayout, CompositeTemplate, TemplateChild,
 };
+
+glib::wrapper! {
+    pub struct Minimal(ObjectSubclass<MinimalPriv>)
+    @extends gtk::Widget;
+}
 
 #[derive(CompositeTemplate, Default)]
 #[template(resource = "/com/github/cr3eperall/dynislandModules/exampleModule/minimal.ui")]
@@ -49,6 +51,9 @@ impl ObjectSubclass for MinimalPriv {
 impl ObjectImpl for MinimalPriv {
     fn constructed(&self) {
         self.parent_constructed();
+    }
+    fn dispose(&self) {
+        self.dispose_template();
     }
 }
 

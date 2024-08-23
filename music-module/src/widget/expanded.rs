@@ -16,7 +16,7 @@ use glib::{
 use gtk::{
     prelude::*,
     subclass::widget::{
-        CompositeTemplateClass, CompositeTemplateInitializingExt,
+        CompositeTemplateClass, CompositeTemplateDisposeExt, CompositeTemplateInitializingExt,
         CompositeTemplateInstanceCallbacksClass, WidgetClassExt, WidgetImpl,
     },
     BinLayout, CompositeTemplate, GestureClick, TemplateChild,
@@ -135,6 +135,9 @@ impl Expanded {
 impl ObjectImpl for ExpandedPriv {
     fn constructed(&self) {
         self.parent_constructed();
+    }
+    fn dispose(&self) {
+        self.dispose_template();
     }
 }
 
