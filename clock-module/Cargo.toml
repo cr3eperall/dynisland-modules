@@ -1,0 +1,41 @@
+[package]
+name = "clock-module"
+version = "0.1.0"
+edition = "2021"
+license = "mit"
+build = "build.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+dynisland-core = { path = "../../core" }
+dynisland-abi = { path = "../../abi" }
+anyhow = { workspace = true }
+gtk = { workspace = true, features = ["unsafe-assume-initialized"] }
+gdk = { workspace = true }
+glib = { workspace = true }
+glib-macros = { workspace = true }
+tokio = { workspace = true, features = [
+    "rt",
+    "time",
+    "sync",
+    "macros",
+    "process",
+] }
+serde = { workspace = true, features = ["serde_derive"] }
+env_logger = { workspace = true }
+log = { workspace = true }
+ron = { workspace = true }
+abi_stable = { workspace = true }
+grass = { workspace = true }
+
+chrono={version = "0.4.38"}
+
+
+[build-dependencies]
+glib-build-tools = {workspace = true}
+
+[lib]
+name = "clock_module"
+
+crate-type = ["cdylib", 'rlib']

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <template class="ClockCompactWidget" parent="GtkWidget">
+        <property name="height-request">40</property>
+        <property name="width-request">85</property>
+        <property name="valign">center</property>
+        <property name="halign">center</property>
+        <child>
+            <object class="GtkBox">
+                <property name="orientation">horizontal</property>
+                <property name="valign">center</property>
+                <property name="halign">center</property>
+                <property name="vexpand">false</property>
+                <property name="hexpand">false</property>
+                <property name="homogeneous">false</property>
+                <child>
+                    <object class="RollingChar" id="hour_dec">
+                        <property name="valign">center</property>
+                        <property name="halign">start</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="RollingChar" id="hour_unit">
+                        <property name="valign">center</property>
+                        <property name="halign">start</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="GtkLabel" id="separator">
+                        <property name="label">:</property>
+                        <property name="valign">center</property>
+                        <property name="halign">center</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="RollingChar" id="minute_dec">
+                        <property name="valign">center</property>
+                        <property name="halign">end</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="RollingChar" id="minute_unit">
+                        <property name="valign">center</property>
+                        <property name="halign">end</property>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </template>
+</interface>
