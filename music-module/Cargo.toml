@@ -31,7 +31,7 @@ grass = { workspace = true }
 
 
 mpris = "2.0.1"
-reqwest = { version = "0.12.7", features = ["blocking"] }
+reqwest = { version = "0.12.7"}
 serde_json = "1.0.113"
 
 [build-dependencies]
@@ -40,4 +40,4 @@ glib-build-tools = {workspace = true}
 [lib]
 name = "music_module"
 
-crate-type = ["cdylib", 'rlib']
+crate-type = ["cdylib"]

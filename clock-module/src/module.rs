@@ -109,31 +109,6 @@ impl SabiModule for ClockModule {
                 return RErr(RBoxError::new(err));
             }
         }
-        if let Ok(act) = self
-            .base_module
-            .registered_activities()
-            .blocking_lock()
-            .get_activity("clock-activity")
-        {
-            let comp = act
-                .blocking_lock()
-                .get_activity_widget()
-                .compact_mode_widget()
-                .and_downcast::<Compact>()
-                .unwrap();
-            comp.set_format_24h(self.config.format_24h);
-            let clock = act
-                .blocking_lock()
-                .get_activity_widget()
-                .minimal_mode_widget()
-                .and_downcast::<Clock>()
-                .unwrap();
-            clock.set_hour_hand_color(self.config.hour_hand_color.clone());
-            clock.set_minute_hand_color(self.config.minute_hand_color.clone());
-            clock.set_circle_color(self.config.circle_color.clone());
-            clock.set_tick_color(self.config.tick_color.clone());
-            clock.queue_draw();
-        }
         ROk(())
     }
 
@@ -164,6 +139,27 @@ fn producer(module: &ClockModule) {
     let config = &module.config;
 
     let activities = module.base_module.registered_activities();
+
+    if let Ok(act) = activities.blocking_lock().get_activity("clock-activity") {
+        let comp = act
+            .blocking_lock()
+            .get_activity_widget()
+            .compact_mode_widget()
+            .and_downcast::<Compact>()
+            .unwrap();
+        comp.set_format_24h(config.format_24h);
+        let clock = act
+            .blocking_lock()
+            .get_activity_widget()
+            .minimal_mode_widget()
+            .and_downcast::<Clock>()
+            .unwrap();
+        clock.set_hour_hand_color(config.hour_hand_color.clone());
+        clock.set_minute_hand_color(config.minute_hand_color.clone());
+        clock.set_circle_color(config.circle_color.clone());
+        clock.set_tick_color(config.tick_color.clone());
+        clock.queue_draw();
+    }
 
     let time = activities
         .blocking_lock()

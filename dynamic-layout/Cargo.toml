@@ -27,4 +27,4 @@ env_logger = { workspace = true }
 
 [lib]
 name = "dynamic_layoutmanager"
-crate-type = ["cdylib", 'rlib']
+crate-type = ["cdylib"]

@@ -17,8 +17,8 @@ pub async fn get_album_art_from_url(url: &str) -> Option<Vec<u8>> {
             .unwrap()
             .to_vec();
     } else if let Some(path) = url.strip_prefix("file://") {
-        let mut buf = vec![0_u8; 26214400];
-        let size = fs::File::open(path).ok()?.read(&mut buf).ok()?;
+        let mut buf = Vec::new();
+        let size = fs::File::open(path).ok()?.read_to_end(&mut buf).ok()?;
         vec = buf[..size].to_vec();
     } else {
         return None;

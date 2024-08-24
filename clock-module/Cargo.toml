@@ -38,4 +38,4 @@ glib-build-tools = {workspace = true}
 [lib]
 name = "clock_module"
 
-crate-type = ["cdylib", 'rlib']
+crate-type = ["cdylib"]

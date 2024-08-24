@@ -36,30 +36,30 @@ pub fn get_activity(
 }
 
 fn register_mode_gestures(activity_widget: ActivityWidget) {
-    let primary_gesture = gtk::GestureClick::new();
-    primary_gesture.set_button(gdk::BUTTON_PRIMARY);
+    // let primary_gesture = gtk::GestureClick::new();
+    // primary_gesture.set_button(gdk::BUTTON_PRIMARY);
 
-    primary_gesture.connect_released(move |gest, _, x, y| {
-        let aw = gest.widget().downcast::<ActivityWidget>().unwrap();
-        if x < 0.0
-            || y < 0.0
-            || x > aw.size(gtk::Orientation::Horizontal).into()
-            || y > aw.size(gtk::Orientation::Vertical).into()
-        {
-            return;
-        }
-        match aw.mode() {
-            ActivityMode::Compact => {
-                aw.set_mode(ActivityMode::Expanded);
-            }
-            ActivityMode::Expanded => {
-                aw.set_mode(ActivityMode::Overlay);
-            }
-            _ => {}
-        }
-    });
+    // primary_gesture.connect_released(move |gest, _, x, y| {
+    //     let aw = gest.widget().downcast::<ActivityWidget>().unwrap();
+    //     if x < 0.0
+    //         || y < 0.0
+    //         || x > aw.size(gtk::Orientation::Horizontal).into()
+    //         || y > aw.size(gtk::Orientation::Vertical).into()
+    //     {
+    //         return;
+    //     }
+    //     match aw.mode() {
+    //         ActivityMode::Compact => {
+    //             aw.set_mode(ActivityMode::Expanded);
+    //         }
+    //         ActivityMode::Expanded => {
+    //             aw.set_mode(ActivityMode::Overlay);
+    //         }
+    //         _ => {}
+    //     }
+    // });
 
-    activity_widget.add_controller(primary_gesture);
+    // activity_widget.add_controller(primary_gesture);
 
     let secondary_gesture = GestureClick::new();
     secondary_gesture.set_button(gdk::BUTTON_SECONDARY);

@@ -30,4 +30,4 @@ glib-build-tools = { workspace = true }
 
 [lib]
 name = "example_module"
-crate-type = ["cdylib", 'rlib']
+crate-type = ["cdylib"]

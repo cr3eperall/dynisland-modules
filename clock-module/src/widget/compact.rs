@@ -79,7 +79,6 @@ impl WidgetImpl for CompactPriv {}
 impl Compact {
     pub fn new(dynamic_activity: &mut DynamicActivity) -> Self {
         let this: Self = Object::builder().build();
-        log::info!("{}", this.format_24h());
         let digital_clock = this.clone();
         if dynamic_activity.get_property_any("time").is_err() {
             dynamic_activity

@@ -129,14 +129,15 @@ impl WidgetImpl for ClockPriv {
 
         let size = size as f64;
         let ctx = snapshot.append_cairo(&rect);
-        ctx.set_source_color(&RGBA::parse("lightgray").unwrap());
 
         //circle
+        ctx.set_source_color(&self.circle_color.borrow());
         ctx.set_line_width(size * 0.04);
         ctx.arc(size / 2.0, size / 2.0, size * 0.48, 0.0, PI * 2.0);
         ctx.stroke().unwrap();
 
         //ticks
+        ctx.set_source_color(&self.tick_color.borrow());
         ctx.save().unwrap();
         ctx.translate(size / 2.0, size / 2.0);
         ctx.save().unwrap();
@@ -167,7 +168,7 @@ impl WidgetImpl for ClockPriv {
         ctx.save().unwrap();
         ctx.rotate(2.0 * PI * (minute / 60.0));
         ctx.set_line_width(size * 0.05);
-        ctx.set_source_color(&RGBA::parse("white").unwrap());
+        ctx.set_source_color(&self.minute_hand_color.borrow());
         ctx.move_to(0.0, 0.0);
         ctx.line_to(0.0, -size * 0.42);
         ctx.stroke().unwrap();
