@@ -30,7 +30,6 @@ use crate::{
     priority_order::{cycle_order::CycleOrder, WidgetOrderManager},
 };
 
-// TODO set activity order at start
 pub struct DynamicLayout<Ord: WidgetOrderManager> {
     pub(crate) app: gtk::Application,
     // widget_map: Rc<RefCell<HashMap<ActivityIdentifier, ActivityWidget>>>,
@@ -176,25 +175,20 @@ impl<Ord: WidgetOrderManager + 'static> SabiLayoutManager for DynamicLayout<Ord>
     }
 
     fn remove_activity(&mut self, activity: &ActivityIdentifier) {
-        let create_new_window =
-            if let Some(container) = self.order_manager.borrow().get_container().as_ref() {
-                // container.remove(&widget);
-                self.order_manager.borrow_mut().remove(activity);
-                // update.apply(
-                //     self.widget_map.borrow(),
-                //     &self.container.clone().unwrap(),
-                //     activity,
-                // );
-                if container.first_child().is_none() {
-                    // update window, for some reason if there are no children
-                    // in the container, the last child stays displayed
-                    true
-                } else {
-                    false
-                }
-            } else {
+        let mut order_manager = self.order_manager.borrow_mut();
+        let create_new_window = if let Some(container) = order_manager.get_container().as_ref() {
+            order_manager.remove(activity);
+            if container.first_child().is_none() {
+                // update window, for some reason if there are no children
+                // in the container, the last child stays displayed
                 true
-            };
+            } else {
+                false
+            }
+        } else {
+            true
+        };
+        drop(order_manager);
         if create_new_window {
             if let Some(win) = self.app.windows().first() {
                 win.close();
@@ -348,6 +342,7 @@ impl<Ord: WidgetOrderManager + 'static> DynamicLayout<Ord> {
         self.order_manager
             .borrow_mut()
             .set_container(container.clone());
+        self.configure_container();
         window.set_child(Some(&container));
         self.config
             .window_position

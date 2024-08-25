@@ -381,7 +381,6 @@ impl MprisPlayer {
                 let mut progress = MprisProgress::from(tick);
 
                 loop {
-                    // FIXME it's too convoluted
                     let mut refresh = false;
                     if interval.saturating_sub(last_refresh.elapsed()).is_zero() {
                         last_refresh = Instant::now();

@@ -256,7 +256,7 @@ pub fn gradient_from_image_bytes(data: &Vec<u8>) -> [[[u8; 3]; 6]; 3] {
         pixbuf = Pixbuf::new(gdk::gdk_pixbuf::Colorspace::Rgb, false, 8, 6, 3);
     }
     let pixbuf = pixbuf.unwrap();
-    //TODO get a better color scheme
+    //TODO use a better color scheme interpolation method
     let scaled_pixbuf = pixbuf
         .scale_simple(6, 3, gdk::gdk_pixbuf::InterpType::Bilinear)
         .unwrap();

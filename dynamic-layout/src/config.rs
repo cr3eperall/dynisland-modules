@@ -202,6 +202,7 @@ impl<Ord: WidgetOrderManager> DynamicLayout<Ord> {
             let cont = self.order_manager.borrow().get_container();
             cont.as_ref().unwrap().clone()
         };
+        container.set_spacing(0);
         // if self.config.orientation_horizontal {
         container.set_orientation(gtk::Orientation::Horizontal);
         // } else {
