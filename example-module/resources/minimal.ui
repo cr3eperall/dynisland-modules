@@ -20,6 +20,7 @@
                         <property name="halign">start</property>
                         <property name="height-request">40</property>
                         <property name="width-request">50</property>
+                        <property name="max-width">50</property>
                     </object>
                 </child>
             </object>

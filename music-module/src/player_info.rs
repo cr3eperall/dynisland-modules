@@ -311,32 +311,35 @@ impl MprisPlayer {
             .unwrap()
             .bus_name_player_name_part()
             .to_string();
-        std::thread::spawn(move || {
-            let player = mpris::PlayerFinder::new()
-                .expect("Could not connect to D-Bus")
-                .find_by_name(&player_id)
-                .unwrap_or_else(|err| {
-                    log::error!("error finding player: {:?}", err);
+        std::thread::Builder::new()
+            .name("music-player-signal-listener".to_string())
+            .spawn(move || {
+                let player = mpris::PlayerFinder::new()
+                    .expect("Could not connect to D-Bus")
+                    .find_by_name(&player_id)
+                    .unwrap_or_else(|err| {
+                        log::error!("error finding player: {:?}", err);
+                        panic!()
+                    });
+                let iter = player.events().unwrap_or_else(|err| {
+                    log::error!("error getting events: {:?}", err);
                     panic!()
                 });
-            let iter = player.events().unwrap_or_else(|err| {
-                log::error!("error getting events: {:?}", err);
-                panic!()
-            });
-            for event in iter {
-                if tx.is_closed() {
-                    break;
-                }
-                match event {
-                    Ok(event) => {
-                        tx.send(event).unwrap();
+                for event in iter {
+                    if tx.is_closed() {
+                        break;
                     }
-                    Err(err) => {
-                        log::warn!("mpris event error: {:?}", err);
+                    match event {
+                        Ok(event) => {
+                            tx.send(event).unwrap();
+                        }
+                        Err(err) => {
+                            log::warn!("mpris event error: {:?}", err);
+                        }
                     }
                 }
-            }
-        });
+            })
+            .expect("failed to start music-player-signal-listener thread");
         Ok(rx)
     }
 
@@ -355,85 +358,88 @@ impl MprisPlayer {
             .unwrap()
             .bus_name_player_name_part()
             .to_string();
-        std::thread::spawn(move || {
-            let player = match Self::find_new_player(&player_id) {
-                Ok(player) => player,
-                Err(err) => {
-                    log::warn!("error getting a player: {}", err);
-                    return;
-                }
-            };
-            let mut prog_tracker = match player.track_progress(interval.as_millis() as u32) {
-                Ok(prog) => prog,
-                Err(err) => {
-                    log::warn!("error getting progress tracker: {}", err);
-                    return;
-                }
-            };
-
-            let mut last_refresh = Instant::now();
-            let tick = prog_tracker.tick();
-            let mut progress = MprisProgress::from(tick);
-
-            loop {
-                // FIXME it's too convoluted
-                let mut refresh = false;
-                if interval.saturating_sub(last_refresh.elapsed()).is_zero() {
-                    last_refresh = Instant::now();
-                    refresh = true;
-                    if prog_tracker.force_refresh().is_err() {
-                        break;
+        std::thread::Builder::new()
+            .name("music-player-progress-tracker".to_string())
+            .spawn(move || {
+                let player = match Self::find_new_player(&player_id) {
+                    Ok(player) => player,
+                    Err(err) => {
+                        log::warn!("error getting a player: {}", err);
+                        return;
                     }
-                }
+                };
+                let mut prog_tracker = match player.track_progress(interval.as_millis() as u32) {
+                    Ok(prog) => prog,
+                    Err(err) => {
+                        log::warn!("error getting progress tracker: {}", err);
+                        return;
+                    }
+                };
+
+                let mut last_refresh = Instant::now();
                 let tick = prog_tracker.tick();
-                refresh |= tick.progress_changed;
-                if tick.player_quit {
-                    event_tx.send(MprisProgressEvent::PlayerQuit).unwrap();
-                }
-                if refresh {
-                    progress = MprisProgress::from(tick);
-                }
-                if progress.playback_status == PlaybackStatus::Playing || refresh {
-                    if let Ok(val) = seek_rx.try_recv() {
-                        progress.position = val;
-                        //wait for mpris server to update position
-                        last_refresh = Instant::now().checked_add(interval).unwrap();
+                let mut progress = MprisProgress::from(tick);
+
+                loop {
+                    // FIXME it's too convoluted
+                    let mut refresh = false;
+                    if interval.saturating_sub(last_refresh.elapsed()).is_zero() {
+                        last_refresh = Instant::now();
+                        refresh = true;
+                        if prog_tracker.force_refresh().is_err() {
+                            break;
+                        }
+                    }
+                    let tick = prog_tracker.tick();
+                    refresh |= tick.progress_changed;
+                    if tick.player_quit {
+                        event_tx.send(MprisProgressEvent::PlayerQuit).unwrap();
                     }
                     if refresh {
-                        progress.can_go_next = match player.can_go_next() {
-                            Ok(b) => b,
-                            Err(_) => break,
-                        };
-                        progress.can_go_prev = match player.can_go_previous() {
-                            Ok(b) => b,
-                            Err(_) => break,
-                        };
-                        progress.can_loop = match player.can_loop() {
-                            Ok(b) => b,
-                            Err(_) => break,
-                        };
-                        progress.can_shuffle = match player.can_shuffle() {
-                            Ok(b) => b,
-                            Err(_) => break,
-                        };
-                        progress.can_playpause = match player.can_play() {
-                            Ok(a) => match player.can_pause() {
-                                Ok(b) => a && b,
-                                Err(_) => break,
-                            },
-                            Err(_) => break,
-                        };
+                        progress = MprisProgress::from(tick);
                     }
-                    if event_tx
-                        .send(MprisProgressEvent::Progress(progress.clone()))
-                        .is_err()
-                    {
-                        break;
+                    if progress.playback_status == PlaybackStatus::Playing || refresh {
+                        if let Ok(val) = seek_rx.try_recv() {
+                            progress.position = val;
+                            //wait for mpris server to update position
+                            last_refresh = Instant::now().checked_add(interval).unwrap();
+                        }
+                        if refresh {
+                            progress.can_go_next = match player.can_go_next() {
+                                Ok(b) => b,
+                                Err(_) => break,
+                            };
+                            progress.can_go_prev = match player.can_go_previous() {
+                                Ok(b) => b,
+                                Err(_) => break,
+                            };
+                            progress.can_loop = match player.can_loop() {
+                                Ok(b) => b,
+                                Err(_) => break,
+                            };
+                            progress.can_shuffle = match player.can_shuffle() {
+                                Ok(b) => b,
+                                Err(_) => break,
+                            };
+                            progress.can_playpause = match player.can_play() {
+                                Ok(a) => match player.can_pause() {
+                                    Ok(b) => a && b,
+                                    Err(_) => break,
+                                },
+                                Err(_) => break,
+                            };
+                        }
+                        if event_tx
+                            .send(MprisProgressEvent::Progress(progress.clone()))
+                            .is_err()
+                        {
+                            break;
+                        }
                     }
                 }
-            }
-            let _ = event_tx.send(MprisProgressEvent::PlayerQuit);
-        });
+                let _ = event_tx.send(MprisProgressEvent::PlayerQuit);
+            })
+            .expect("failed to start music-player-progress-tracker thread");
         Ok((event_rx, refresh_tx))
     }
 

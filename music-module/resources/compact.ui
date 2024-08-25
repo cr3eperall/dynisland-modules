@@ -41,6 +41,7 @@
                         <property name="halign">start</property>
                         <property name="valign">center</property>
                         <property name="width-request">168</property>
+                        <property name="max-width">168</property>
                         <property name="height-request">40</property>
                         <property name="hexpand">false</property>
                         <property name="config-scroll-speed">20.0</property>

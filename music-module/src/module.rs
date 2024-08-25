@@ -89,31 +89,34 @@ pub fn new(app_send: RSender<UIServerCommand>) -> RResult<ModuleType, RBoxError>
     let (restart_tx, mut restart_rx) = tokio::sync::mpsc::unbounded_channel();
     let producers_rt = ProducerRuntime::new();
     let prod_hdl = producers_rt.clone();
-    std::thread::spawn(move || {
-        let mut last_attempt = Instant::now();
-        loop {
-            match restart_rx.blocking_recv() {
-                Some(_) => {
-                    if last_attempt.elapsed() < Duration::from_millis(1000) {
-                        log::info!("no player found: sleeping for {} millis", CHECK_DELAY);
-                        thread::sleep(Duration::from_millis(CHECK_DELAY));
+    std::thread::Builder::new()
+        .name("music-restart-player-watcher".to_string())
+        .spawn(move || {
+            let mut last_attempt = Instant::now();
+            loop {
+                match restart_rx.blocking_recv() {
+                    Some(_) => {
+                        if last_attempt.elapsed() < Duration::from_millis(1000) {
+                            log::info!("no player found: sleeping for {} millis", CHECK_DELAY);
+                            thread::sleep(Duration::from_millis(CHECK_DELAY));
+                        }
+                        last_attempt = Instant::now();
+                        log::info!("searching for a new player");
+                        prod_hdl.shutdown_blocking();
+                        app_send
+                            .send(UIServerCommand::RestartProducers {
+                                module_name: NAME.into(),
+                            })
+                            .unwrap();
                     }
-                    last_attempt = Instant::now();
-                    log::info!("searching for a new player");
-                    prod_hdl.shutdown_blocking();
-                    app_send
-                        .send(UIServerCommand::RestartProducers {
-                            module_name: NAME.into(),
-                        })
-                        .unwrap();
-                }
-                None => {
-                    log::debug!("restart_tx was dropped, probaby a default config request");
-                    break;
+                    None => {
+                        log::debug!("restart_tx was dropped, probaby a default config request");
+                        break;
+                    }
                 }
             }
-        }
-    });
+        })
+        .expect("failed to start music-restart-player-watcher thread");
     let this = MusicModule {
         base_module,
         producers_rt,
