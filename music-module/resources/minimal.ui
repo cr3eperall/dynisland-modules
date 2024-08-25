@@ -6,30 +6,21 @@
         <property name="height-request">40</property>
         <property name="width-request">80</property>
         <child>
-            <object class="GtkBox">
-                <property name="valign">center</property>
-                <property name="halign">center</property>
-                <property name="vexpand">false</property>
+            <object class="GtkBox" id="album_art">
+                <style>
+                    <class name="album-art" />
+                </style>
                 <property name="hexpand">false</property>
-                <property name="homogeneous">true</property>
+                <property name="homogeneous">false</property>
+                <property name="width-request">36</property>
                 <child>
-                    <object class="GtkBox" id="album_art">
-                        <style>
-                            <class name="album-art" />
-                        </style>
-                        <property name="hexpand">false</property>
-                        <property name="homogeneous">false</property>
-                        <property name="width-request">36</property>
-                        <child>
-                            <object class="GtkImage" id="image">
-                                <property name="hexpand">true</property>
-                                <property name="valign">center</property>
-                                <property name="halign">center</property>
-                                <property name="height-request">30</property>
-                                <property name="width-request">30</property>
-                                <property name="overflow">hidden</property>
-                            </object>
-                        </child>
+                    <object class="GtkImage" id="image">
+                        <property name="hexpand">true</property>
+                        <property name="valign">center</property>
+                        <property name="halign">center</property>
+                        <property name="height-request">30</property>
+                        <property name="width-request">30</property>
+                        <property name="overflow">hidden</property>
                     </object>
                 </child>
             </object>

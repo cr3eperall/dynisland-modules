@@ -9,7 +9,7 @@ use glib::{
     object::ObjectExt,
     subclass::{
         object::{DerivedObjectProperties, ObjectImpl, ObjectImplExt},
-        types::{ObjectSubclass, ObjectSubclassIsExt},
+        types::{ObjectSubclass, ObjectSubclassExt, ObjectSubclassIsExt},
         InitializingObject,
     },
     types::StaticTypeExt,
@@ -64,6 +64,9 @@ impl ObjectImpl for CompactPriv {
         self.parent_constructed();
     }
     fn dispose(&self) {
+        while let Some(child) = self.obj().first_child() {
+            child.unparent();
+        }
         self.dispose_template();
     }
 }

@@ -8,13 +8,14 @@ use dynisland_core::{
 use glib::{
     subclass::{
         object::{ObjectImpl, ObjectImplExt},
-        types::{ObjectSubclass, ObjectSubclassIsExt},
+        types::{ObjectSubclass, ObjectSubclassExt, ObjectSubclassIsExt},
         InitializingObject,
     },
     types::StaticTypeExt,
     Object,
 };
 use gtk::{
+    prelude::WidgetExt,
     subclass::widget::{
         CompositeTemplateClass, CompositeTemplateDisposeExt, CompositeTemplateInitializingExt,
         WidgetClassExt, WidgetImpl,
@@ -56,6 +57,9 @@ impl ObjectImpl for CompactPriv {
     }
 
     fn dispose(&self) {
+        while let Some(child) = self.obj().first_child() {
+            child.unparent();
+        }
         self.dispose_template();
     }
 }

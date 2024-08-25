@@ -97,11 +97,11 @@ pub fn new(app_send: RSender<UIServerCommand>) -> RResult<ModuleType, RBoxError>
                 match restart_rx.blocking_recv() {
                     Some(_) => {
                         if last_attempt.elapsed() < Duration::from_millis(1000) {
-                            log::info!("no player found: sleeping for {} millis", CHECK_DELAY);
+                            log::debug!("no player found: sleeping for {} millis", CHECK_DELAY);
                             thread::sleep(Duration::from_millis(CHECK_DELAY));
                         }
                         last_attempt = Instant::now();
-                        log::info!("searching for a new player");
+                        log::debug!("searching for a new player");
                         prod_hdl.shutdown_blocking();
                         app_send
                             .send(UIServerCommand::RestartProducers {

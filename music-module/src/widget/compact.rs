@@ -7,7 +7,7 @@ use super::visualizer::Visualizer;
 use glib::{
     subclass::{
         object::{ObjectImpl, ObjectImplExt},
-        types::{ObjectSubclass, ObjectSubclassIsExt},
+        types::{ObjectSubclass, ObjectSubclassExt, ObjectSubclassIsExt},
         InitializingObject,
     },
     Object,
@@ -58,6 +58,9 @@ impl ObjectImpl for CompactPriv {
         self.parent_constructed();
     }
     fn dispose(&self) {
+        while let Some(child) = self.obj().first_child() {
+            child.unparent();
+        }
         self.dispose_template();
     }
 }

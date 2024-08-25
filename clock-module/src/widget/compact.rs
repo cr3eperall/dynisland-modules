@@ -10,9 +10,9 @@ use glib::{
     object::ObjectExt, subclass::object::DerivedObjectProperties, subclass::*,
     types::StaticTypeExt, Object, Properties,
 };
-use gtk::{subclass::widget::*, BinLayout, CompositeTemplate, TemplateChild};
+use gtk::{prelude::WidgetExt, subclass::widget::*, BinLayout, CompositeTemplate, TemplateChild};
 use object::{ObjectImpl, ObjectImplExt};
-use types::{ObjectSubclass, ObjectSubclassIsExt};
+use types::{ObjectSubclass, ObjectSubclassExt, ObjectSubclassIsExt};
 
 glib::wrapper! {
     pub struct Compact(ObjectSubclass<CompactPriv>)
@@ -70,6 +70,9 @@ impl ObjectImpl for CompactPriv {
         self.parent_constructed();
     }
     fn dispose(&self) {
+        while let Some(child) = self.obj().first_child() {
+            child.unparent();
+        }
         self.dispose_template();
     }
 }

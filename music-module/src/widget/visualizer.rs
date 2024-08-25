@@ -66,6 +66,9 @@ impl ObjectImpl for VisualizerPriv {
         self.parent_constructed();
     }
     fn dispose(&self) {
+        while let Some(child) = self.obj().first_child() {
+            child.unparent();
+        }
         self.dispose_template();
     }
     fn set_property(&self, _id: usize, value: &glib::Value, pspec: &glib::ParamSpec) {
