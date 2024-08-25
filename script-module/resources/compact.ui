@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <template class="ScriptCompactWidget" parent="GtkWidget">
+        <property name="height-request">40</property>
+        <property name="valign">center</property>
+        <property name="halign">center</property>
+        <child>
+            <object class="GtkLabel" id="label">
+                <property name="label"></property>
+                <property name="valign">center</property>
+                <property name="halign">center</property>
+                <property name="ellipsize">end</property>
+                <property name="max-width-chars">30</property>
+                <property name="visible">true</property>
+            </object>
+        </child>
+        <child>
+            <object class="ScrollingLabel" id="scroll">
+                <property name="valign">center</property>
+                <property name="halign">center</property>
+                <property name="text"></property>
+                <property name="max-width">300</property>
+                <property name="visible">false</property>
+            </object>
+        </child>
+    </template>
+</interface>
