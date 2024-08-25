@@ -101,7 +101,7 @@ impl Compact {
     pub fn set_time(&self, time: chrono::DateTime<Local>) {
         let imp = self.imp();
 
-        let hour = time.hour() % (if self.format_24h() { 24 } else { 12 });
+        let hour = if self.format_24h() { time.hour() } else { time.hour12().1 };
         let hour = format!("{:>2}", hour);
         let (hour_dec, hour_unit) = (hour.chars().nth(0).unwrap(), hour.chars().nth(1).unwrap());
 
