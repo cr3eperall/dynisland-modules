@@ -32,10 +32,10 @@ pub fn get_activity(
     let overlay = Overlay::new();
 
     //load widgets in the activity widget
-    activity_widget.set_minimal_mode_widget(&minimal.clone().upcast());
-    activity_widget.set_compact_mode_widget(&compact.clone().upcast());
-    activity_widget.set_expanded_mode_widget(&expanded.clone().upcast());
-    activity_widget.set_overlay_mode_widget(&overlay.clone().upcast());
+    activity_widget.set_minimal_mode_widget(minimal.clone());
+    activity_widget.set_compact_mode_widget(compact.clone());
+    activity_widget.set_expanded_mode_widget(expanded.clone());
+    activity_widget.set_overlay_mode_widget(overlay.clone());
 
     register_mode_gestures(activity_widget);
 

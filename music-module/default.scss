@@ -45,6 +45,12 @@
     .mode-expanded {
         background-color: rgb(0, 0, 0);
 
+        scrolling-label:not(.active){
+            label{
+                margin-left: 10px;
+            }
+        }
+
         .info {
 
             /* background-color: rgb(0, 95, 121); */
