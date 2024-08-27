@@ -4,7 +4,8 @@ on:
   push:
     tags: 
       - '*'
-      
+  workflow_dispatch:
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -35,7 +36,7 @@ jobs:
       uses: r7kamura/rust-problem-matchers@v1
 
     - name: Create target directory
-      run: mkdir target
+      run: mkdir -p target
       
     - name: Build
       run: |

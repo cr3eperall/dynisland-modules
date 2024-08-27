@@ -1,0 +1,25 @@
+[general]
+framerate = 20
+autosens = 1
+overshoot = 0
+bars = 6
+sleep_timer = 5
+[input]
+method = pulse
+source = auto
+[output]
+method = raw
+channels = mono
+data_format = ascii
+ascii_max_range = 32
+bar_delimiter = 44
+[color]
+[smoothing]
+noise_reduction = 0.5
+[eq]
+1 = 1
+2 = 0.8
+3 = 1.2
+4 = 1.4
+5 = 1.2
+6 = 0.9
