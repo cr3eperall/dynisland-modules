@@ -52,9 +52,9 @@ jobs:
         prerelease: false
         draft: true
         files: |
-          target/release/clock-module
-          target/release/dynamic-layout
-          target/release/music-module
-          target/release/script-module
+          target/release/libclock_module.so
+          target/release/libdynamic_layoutmanager.so
+          target/release/libmusic_module.so
+          target/release/libscript_module.so
           
       
