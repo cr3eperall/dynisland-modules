@@ -7,7 +7,7 @@ license = "mit"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-dynisland-core = { path="../../core" }
+dynisland-core = { git="https://github.com/cr3eperall/dynisland-core" }
 
 tokio = { version = "1.39.0", features = ["rt", "time", "sync", "macros"] }
 anyhow = "1.0.86"
