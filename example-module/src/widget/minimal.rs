@@ -1,5 +1,7 @@
 use dynisland_core::{
-    cast_dyn_any, dynamic_activity::DynamicActivity,
+    abi::{glib, gtk, log},
+    cast_dyn_any,
+    dynamic_activity::DynamicActivity,
     graphics::widgets::scrolling_label::ScrollingLabel,
 };
 use glib::{

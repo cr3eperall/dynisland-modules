@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 
 use dynisland_core::{
+    abi::{glib, gtk},
     cast_dyn_any,
     dynamic_activity::DynamicActivity,
     graphics::{activity_widget::ActivityWidget, widgets::scrolling_label::ScrollingLabel},

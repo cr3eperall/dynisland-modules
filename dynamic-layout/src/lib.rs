@@ -2,9 +2,11 @@ mod config;
 mod layout;
 mod priority_order;
 mod window_position;
-
 use abi_stable::{export_root_module, prefix_type::PrefixTypeTrait};
-use dynisland_abi::layout::{LayoutManagerBuilder, LayoutManagerBuilderRef};
+use dynisland_core::abi::{
+    abi_stable,
+    layout::{LayoutManagerBuilder, LayoutManagerBuilderRef},
+};
 use layout::new;
 
 pub const NAME: &str = "DynamicLayout";

@@ -1,7 +1,11 @@
 use std::{cell::RefCell, f64::consts::PI};
 
 use chrono::{Local, Timelike};
-use dynisland_core::{cast_dyn_any, dynamic_activity::DynamicActivity};
+use dynisland_core::{
+    abi::{gdk, glib, gtk, log},
+    cast_dyn_any,
+    dynamic_activity::DynamicActivity,
+};
 use gdk::RGBA;
 use glib::{
     subclass::{

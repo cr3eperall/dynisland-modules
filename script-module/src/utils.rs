@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use anyhow::{anyhow, Result};
+use dynisland_core::abi::{gdk, glib, gtk};
 use gdk::{gdk_pixbuf::Pixbuf, gio::MemoryInputStream};
 use glib::Bytes;
 

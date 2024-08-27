@@ -1,3 +1,4 @@
+use dynisland_core::abi::{glib, gtk};
 glib::wrapper! {
     pub struct Expanded(ObjectSubclass<ExpandedPriv>)
     @extends gtk::Widget;

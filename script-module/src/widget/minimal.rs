@@ -1,4 +1,8 @@
-use dynisland_core::{cast_dyn_any, dynamic_activity::DynamicActivity};
+use dynisland_core::{
+    abi::{glib, gtk},
+    cast_dyn_any,
+    dynamic_activity::DynamicActivity,
+};
 use glib::{
     subclass::{
         object::{ObjectImpl, ObjectImplExt},

@@ -1,8 +1,8 @@
 use std::{str::FromStr, time::Duration};
 
-use dynisland_abi::module::ActivityIdentifier;
-use dynisland_core::graphics::activity_widget::{
-    boxed_activity_mode::ActivityMode, ActivityWidget,
+use dynisland_core::{
+    abi::{gdk, glib, gtk, log, module::ActivityIdentifier},
+    graphics::activity_widget::{boxed_activity_mode::ActivityMode, ActivityWidget},
 };
 use gtk::{prelude::*, EventController, StateFlags};
 use serde::{Deserialize, Serialize};

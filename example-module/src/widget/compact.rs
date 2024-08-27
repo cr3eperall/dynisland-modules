@@ -1,3 +1,5 @@
+use dynisland_core::abi::{glib, gtk};
+
 glib::wrapper! {
     pub struct Compact(ObjectSubclass<CompactPriv>)
     @extends gtk::Widget;

@@ -1,5 +1,4 @@
-use crate::module::MusicConfig;
-
+use dynisland_core::abi::{glib, gtk};
 use glib::{
     subclass::{
         object::{ObjectImpl, ObjectImplExt},
@@ -16,6 +15,8 @@ use gtk::{
     },
     BinLayout, CompositeTemplate, TemplateChild,
 };
+
+use crate::module::MusicConfig;
 
 glib::wrapper! {
     pub struct Minimal(ObjectSubclass<MinimalPriv>)

@@ -1,30 +1,29 @@
 use std::cell::RefCell;
 
-use dynisland_core::graphics::activity_widget::boxed_activity_mode::ActivityMode;
+use dynisland_core::{
+    abi::{gdk, glib, gtk, log},
+    graphics::activity_widget::boxed_activity_mode::ActivityMode,
+};
 use gdk::{gdk_pixbuf::Pixbuf, gio::MemoryInputStream, prelude::ListModelExtManual};
 use glib::{
     object::{Cast, ObjectExt},
-    subclass::{object::DerivedObjectProperties, types::ObjectSubclassIsExt},
-    Bytes, Properties,
-};
-use gtk::{prelude::WidgetExt, subclass::widget::CompositeTemplateDisposeExt, BinLayout};
-
-use crate::utils::{format_rgb_color, remap_num};
-
-use glib::{
     subclass::{
-        object::{ObjectImpl, ObjectImplExt},
-        types::{ObjectSubclass, ObjectSubclassExt},
+        object::{DerivedObjectProperties, ObjectImpl, ObjectImplExt},
+        types::{ObjectSubclass, ObjectSubclassExt, ObjectSubclassIsExt},
         InitializingObject,
     },
-    Object,
+    Bytes, Object, Properties,
 };
 use gtk::{
+    prelude::WidgetExt,
     subclass::widget::{
-        CompositeTemplateClass, CompositeTemplateInitializingExt, WidgetClassExt, WidgetImpl,
+        CompositeTemplateClass, CompositeTemplateDisposeExt, CompositeTemplateInitializingExt,
+        WidgetClassExt, WidgetImpl,
     },
-    CompositeTemplate, TemplateChild,
+    BinLayout, CompositeTemplate, TemplateChild,
 };
+
+use crate::utils::{format_rgb_color, remap_num};
 
 glib::wrapper! {
     pub struct Visualizer(ObjectSubclass<VisualizerPriv>)

@@ -11,11 +11,16 @@ use abi_stable::{
     },
 };
 use anyhow::Context;
-use dynisland_abi::module::{ModuleType, SabiModule, SabiModule_TO, UIServerCommand};
+use dynisland_core::{
+    abi::{
+        abi_stable, gdk, glib, gtk, log,
+        module::{ModuleType, SabiModule, SabiModule_TO, UIServerCommand},
+    },
+    base_module::{BaseModule, ProducerRuntime},
+    ron,
+};
 use env_logger::Env;
 use log::Level;
-
-use dynisland_core::base_module::{BaseModule, ProducerRuntime};
 use ron::ser::PrettyConfig;
 use serde::{Deserialize, Serialize};
 use tokio::{

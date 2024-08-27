@@ -1,7 +1,9 @@
 use std::{cell::RefCell, collections::HashMap, fmt::Debug, rc::Rc};
 
-use dynisland_abi::module::ActivityIdentifier;
-use dynisland_core::graphics::activity_widget::ActivityWidget;
+use dynisland_core::{
+    abi::{gtk, module::ActivityIdentifier},
+    graphics::activity_widget::ActivityWidget,
+};
 
 pub mod cycle_order;
 // pub mod ui_update;

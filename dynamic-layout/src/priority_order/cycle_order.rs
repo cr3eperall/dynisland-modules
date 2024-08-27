@@ -4,16 +4,15 @@ use std::{
     rc::Rc,
 };
 
-use dynisland_abi::module::ActivityIdentifier;
-use dynisland_core::graphics::activity_widget::{
-    boxed_activity_mode::ActivityMode, ActivityWidget,
+use dynisland_core::{
+    abi::{gdk, glib, gtk, module::ActivityIdentifier},
+    graphics::activity_widget::{boxed_activity_mode::ActivityMode, ActivityWidget},
 };
 use gdk::prelude::ListModelExtManual;
 use gtk::prelude::*;
 
-use crate::config::DynamicLayoutConfig;
-
 use super::WidgetOrderManager;
+use crate::config::DynamicLayoutConfig;
 
 #[derive(Debug, Default)]
 pub struct CycleOrder {

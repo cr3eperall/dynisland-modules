@@ -2,13 +2,16 @@ use std::cell::RefCell;
 
 use chrono::{Local, Timelike};
 use dynisland_core::{
+    abi::{glib, gtk},
     cast_dyn_any,
     dynamic_activity::DynamicActivity,
     graphics::widgets::{rolling_char::RollingChar, scrolling_label::ScrollingLabel},
 };
 use glib::{
-    object::ObjectExt, subclass::object::DerivedObjectProperties, subclass::*,
-    types::StaticTypeExt, Object, Properties,
+    object::ObjectExt,
+    subclass::{object::DerivedObjectProperties, *},
+    types::StaticTypeExt,
+    Object, Properties,
 };
 use gtk::{prelude::WidgetExt, subclass::widget::*, BinLayout, CompositeTemplate, TemplateChild};
 use object::{ObjectImpl, ObjectImplExt};

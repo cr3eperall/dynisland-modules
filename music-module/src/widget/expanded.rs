@@ -1,10 +1,9 @@
 use std::{cell::RefCell, time::Duration};
 
-use dynisland_core::graphics::widgets::scrolling_label::ScrollingLabel;
-use tokio::sync::mpsc::UnboundedSender;
-
-use crate::module::MusicConfig;
-
+use dynisland_core::{
+    abi::{gdk, glib, gtk},
+    graphics::widgets::scrolling_label::ScrollingLabel,
+};
 use glib::{
     subclass::{
         object::{ObjectImpl, ObjectImplExt},
@@ -21,8 +20,10 @@ use gtk::{
     },
     BinLayout, CompositeTemplate, GestureClick, TemplateChild,
 };
+use tokio::sync::mpsc::UnboundedSender;
 
 use super::{visualizer::Visualizer, UIAction};
+use crate::module::MusicConfig;
 
 glib::wrapper! {
     pub struct Expanded(ObjectSubclass<ExpandedPriv>)

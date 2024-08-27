@@ -7,24 +7,14 @@ license = "mit"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-dynisland-core = { git="https://github.com/cr3eperall/dynisland" }
-dynisland-abi = { git="https://github.com/cr3eperall/dynisland" }
+dynisland-core = { path="../../core" }
 
-anyhow = { workspace = true }
-gtk = { workspace = true, features = ["unsafe-assume-initialized"] }
-gtk-layer-shell = { workspace = true }
-gdk = { workspace = true }
-glib = { workspace = true }
-# glib-macros = { workspace = true }
-tokio = { workspace = true, features = ["rt", "time", "sync", "macros"] }
-serde = { workspace = true, features = ["serde_derive"] }
-ron = { workspace = true }
-abi_stable = { workspace = true }
-# grass = { workspace = true }
-
-log = { workspace = true }
-env_logger = { workspace = true }
-
+tokio = { version = "1.39.0", features = ["rt", "time", "sync", "macros"] }
+anyhow = "1.0.86"
+ron = "0.8.1"
+serde = { version = "1.0.188", features = ["serde_derive"] }
+env_logger = "0.11.2"
+abi_stable = "0.11.3"
 [lib]
 name = "dynamic_layoutmanager"
 crate-type = ["cdylib"]

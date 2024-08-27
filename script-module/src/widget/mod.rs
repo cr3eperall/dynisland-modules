@@ -1,5 +1,6 @@
 use compact::Compact;
 use dynisland_core::{
+    abi::{gdk, gtk},
     dynamic_activity::DynamicActivity,
     dynamic_property::PropertyUpdate,
     graphics::activity_widget::{boxed_activity_mode::ActivityMode, ActivityWidget},

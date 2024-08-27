@@ -4,6 +4,7 @@ use std::{
 };
 
 use anyhow::{bail, Result};
+use dynisland_core::abi::log;
 use mpris::{DBusError, PlaybackStatus, Player, TrackID};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 

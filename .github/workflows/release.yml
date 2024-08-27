@@ -1,0 +1,57 @@
+name: Release on tag
+
+on:
+  push:
+    tags: 
+      - '*'
+      
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      TZ: Etc/UTC
+    container: ubuntu:24.10
+
+    steps:
+    - name: Install dependencies
+      run: apt update -y && apt install -y curl nodejs build-essential libgtk-4-dev libgtk4-layer-shell-dev
+    - uses: actions/checkout@v4
+    
+    - name: Setup rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: clippy,rustfmt
+
+    - name: Load rust cache
+      uses: Swatinem/rust-cache@v2
+
+    - name: Setup problem matchers
+      uses: r7kamura/rust-problem-matchers@v1
+
+    - name: Create target directory
+      run: mkdir target
+      
+    - name: Build
+      run: |
+        cargo build --release --target-dir ./target --manifest-path ./clock-module/Cargo.toml
+        cargo build --release --target-dir ./target --manifest-path ./dynamic-layout/Cargo.toml
+        cargo build --release --target-dir ./target --manifest-path ./music-module/Cargo.toml
+        cargo build --release --target-dir ./target --manifest-path ./script-module/Cargo.toml
+
+    - uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        prerelease: false
+        draft: true
+        files: |
+          target/release/clock-module
+          target/release/dynamic-layout
+          target/release/music-module
+          target/release/script-module
+          
+      

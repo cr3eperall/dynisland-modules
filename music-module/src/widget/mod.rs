@@ -7,6 +7,7 @@ use std::time::Duration;
 
 use compact::Compact;
 use dynisland_core::{
+    abi::{gdk, glib, gtk},
     cast_dyn_any,
     dynamic_activity::DynamicActivity,
     dynamic_property::PropertyUpdate,

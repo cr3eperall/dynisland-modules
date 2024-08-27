@@ -2,14 +2,13 @@ mod compact;
 mod expanded;
 mod minimal;
 mod overlay;
-
 use compact::Compact;
 use dynisland_core::{
+    abi::{gdk, gtk},
     dynamic_activity::DynamicActivity,
     dynamic_property::PropertyUpdate,
     graphics::activity_widget::{boxed_activity_mode::ActivityMode, ActivityWidget},
 };
-
 use expanded::Expanded;
 use gtk::{prelude::*, GestureClick};
 use minimal::Minimal;

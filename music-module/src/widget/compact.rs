@@ -1,9 +1,7 @@
-use dynisland_core::graphics::widgets::scrolling_label::ScrollingLabel;
-
-use crate::module::MusicConfig;
-
-use super::visualizer::Visualizer;
-
+use dynisland_core::{
+    abi::{glib, gtk},
+    graphics::widgets::scrolling_label::ScrollingLabel,
+};
 use glib::{
     subclass::{
         object::{ObjectImpl, ObjectImplExt},
@@ -20,6 +18,9 @@ use gtk::{
     },
     BinLayout, CompositeTemplate, TemplateChild,
 };
+
+use super::visualizer::Visualizer;
+use crate::module::MusicConfig;
 
 glib::wrapper! {
     pub struct Compact(ObjectSubclass<CompactPriv>)
