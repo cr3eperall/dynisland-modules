@@ -1,5 +1,5 @@
 [package]
-name = "clock_module"
+name = "dynisland_clock_module"
 version = "0.1.0"
 edition = "2021"
 license = "mit"

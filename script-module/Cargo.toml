@@ -1,5 +1,5 @@
 [package]
-name = "script_module"
+name = "dynisland_script_module"
 version = "0.1.0"
 edition = "2021"
 license = "mit"
