@@ -1,8 +1,11 @@
 [package]
 name = "dynisland_dynamic_layoutmanager"
 version = "0.1.0"
+authors = ["cr3eperall"]
+description = "Dynamic LayoutManager for dynisland"
+repository = "https://github.com/cr3eperall/dynisland-modules"
 edition = "2021"
-license = "mit"
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -12,7 +15,7 @@ opt-level = "z"
 lto = true
 
 [dependencies]
-dynisland-core = { git="https://github.com/cr3eperall/dynisland-core" }
+dynisland-core = { git="https://github.com/cr3eperall/dynisland-core", version="0.1.1" }
 
 tokio = { version = "1.39.0", features = ["rt", "time", "sync", "macros"] }
 anyhow = "1.0.86"
