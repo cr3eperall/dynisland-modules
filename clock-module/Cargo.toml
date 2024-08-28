@@ -10,11 +10,6 @@ build = "build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[profile.release]
-strip = true
-opt-level = "z"
-lto = true
-
 [dependencies]
 dynisland-core = { git="https://github.com/cr3eperall/dynisland-core", version="0.1.1" }
 tokio = { version = "1.39.0", features = [

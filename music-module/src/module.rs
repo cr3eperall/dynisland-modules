@@ -283,9 +283,10 @@ fn producer(module: &MusicModule) {
     let producer_rt = module.producers_rt.clone();
     let find_new_player_channel = module.find_new_player.clone();
     let config1 = config.clone();
+    let player1 = player.clone();
     module.producers_rt.handle().spawn(async move {
         //init UI
-        let metadata = player.get_metadata();
+        let metadata = player1.get_metadata();
         if let Ok(metadata) = metadata {
             set_album_art(
                 metadata.art_url(),
@@ -296,12 +297,12 @@ fn producer(module: &MusicModule) {
             .await;
         }
 
-        let mut track_id = player
+        let mut track_id = player1
             .get_current_track_id()
             .unwrap_or(TrackID::no_track())
             .to_string();
         track_id.push_str(
-            &player
+            &player1
                 .get_metadata()
                 .map(|meta| meta.title().unwrap_or("").to_owned())
                 .unwrap_or(String::from("")),
@@ -400,20 +401,13 @@ fn producer(module: &MusicModule) {
     });
 
     // Execute actions from UI
-    action_task(module, seek_tx);
+    action_task(module, player.clone(), seek_tx);
 
     // Check if config player came back
-    wait_for_new_player_task(module);
+    wait_for_new_player_task(module, player);
 }
 
-fn action_task(module: &MusicModule, seek_tx: UnboundedSender<Duration>) {
-    let player = match MprisPlayer::new(&module.config.preferred_player) {
-        Ok(player) => player,
-        Err(_) => {
-            module.find_new_player.send(()).unwrap();
-            return;
-        }
-    };
+fn action_task(module: &MusicModule, player: MprisPlayer, seek_tx: UnboundedSender<Duration>) {
     let action_rx = module.action_channel.1.clone();
     let find_new_player_channel = module.find_new_player.clone();
     module.producers_rt.handle().spawn(async move {
@@ -535,12 +529,17 @@ async fn set_album_art(
 }
 
 // TODO optimize
-fn wait_for_new_player_task(module: &MusicModule) {
-    let player_bus_name = module.config.preferred_player.clone();
+fn wait_for_new_player_task(module: &MusicModule, current_player: MprisPlayer) {
+    let player_bus_name = if !module.config.preferred_player.is_empty(){
+        module.config.preferred_player.clone()
+    } else{
+        current_player.get_player().lock().unwrap().bus_name_player_name_part().to_string()
+    };
+    let preferred_player = module.config.preferred_player.clone();
     let find_new_player_channel = module.find_new_player.clone();
     module.producers_rt.handle().spawn(async move {
         let mut check_if_quit = false;
-        if let Ok(pl) = MprisPlayer::find_new_player(&player_bus_name) {
+        if let Ok(pl) = MprisPlayer::find_new_player(&preferred_player) {
             if pl.bus_name_player_name_part() == player_bus_name {
                 check_if_quit = true;
             }
@@ -550,7 +549,7 @@ fn wait_for_new_player_task(module: &MusicModule) {
         }
         if check_if_quit {
             loop {
-                if let Ok(pl) = MprisPlayer::find_new_player(&player_bus_name) {
+                if let Ok(pl) = MprisPlayer::find_new_player(&preferred_player) {
                     if pl.bus_name_player_name_part() != player_bus_name {
                         find_new_player_channel.send(()).unwrap();
                         return;

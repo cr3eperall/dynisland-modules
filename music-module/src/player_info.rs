@@ -117,6 +117,10 @@ impl MprisPlayer {
             player: Rc::new(std::sync::Mutex::new(player)),
         })
     }
+
+    pub fn get_player(&self) -> Rc<std::sync::Mutex<mpris::Player>> {
+        self.player.clone()
+    }
 }
 
 impl Clone for MprisPlayer {
@@ -453,6 +457,7 @@ impl MprisPlayer {
         };
         for player in players.flatten() {
             let player_name = player.bus_name_player_name_part();
+            log::trace!("found player: {}", player_name);
             if name.to_lowercase() == player_name.to_lowercase() {
                 return Ok(player);
             }
