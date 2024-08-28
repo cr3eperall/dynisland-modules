@@ -1,10 +1,15 @@
 [package]
-name = "dynamic-layout"
+name = "dynamic_layoutmanager"
 version = "0.1.0"
 edition = "2021"
 license = "mit"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[profile.release]
+strip = true
+opt-level = "z"
+lto = true
 
 [dependencies]
 dynisland-core = { git="https://github.com/cr3eperall/dynisland-core" }
@@ -15,6 +20,10 @@ ron = "0.8.1"
 serde = { version = "1.0.188", features = ["serde_derive"] }
 env_logger = "0.11.2"
 abi_stable = "0.11.3"
+
+[features]
+embedded = []
+
 [lib]
 name = "dynamic_layoutmanager"
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]

@@ -82,6 +82,7 @@ pub struct MusicModule {
 
 #[sabi_extern_fn]
 pub fn new(app_send: RSender<UIServerCommand>) -> RResult<ModuleType, RBoxError> {
+    #[cfg(not(feature = "embedded"))]
     env_logger::Builder::from_env(Env::default().default_filter_or(Level::Warn.as_str())).init();
     if let Err(err) = gtk::gio::resources_register_include!("compiled.gresource") {
         return RErr(RBoxError::new(err));

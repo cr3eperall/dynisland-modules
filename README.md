@@ -1,4 +1,4 @@
-# Collection of Official dynisland Modules and Layout Managers
+# Collection of Official [dynisland](https://github.com/cr3eperall/dynisland) Modules and Layout Managers
 
 ## Layout Managers
 

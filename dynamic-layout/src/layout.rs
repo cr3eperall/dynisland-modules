@@ -54,6 +54,7 @@ pub struct DynamicLayout<Ord: WidgetOrderManager> {
 
 #[sabi_extern_fn]
 pub fn new(app: SabiApplication) -> RResult<LayoutManagerType, RBoxError> {
+    #[cfg(not(feature = "embedded"))]
     env_logger::Builder::from_env(Env::default().default_filter_or(Level::Warn.as_str())).init();
 
     let app = app.try_into().unwrap();

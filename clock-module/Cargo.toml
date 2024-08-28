@@ -1,11 +1,16 @@
 [package]
-name = "clock-module"
+name = "clock_module"
 version = "0.1.0"
 edition = "2021"
 license = "mit"
 build = "build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[profile.release]
+strip = true
+opt-level = "z"
+lto = true
 
 [dependencies]
 dynisland-core = { git="https://github.com/cr3eperall/dynisland-core" }
@@ -29,7 +34,10 @@ chrono={version = "0.4.38"}
 [build-dependencies]
 glib-build-tools = { version="0.19.0" }
 
+[features]
+embedded = []
+
 [lib]
 name = "clock_module"
 
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]

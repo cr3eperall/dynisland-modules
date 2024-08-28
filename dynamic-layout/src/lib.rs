@@ -11,8 +11,8 @@ use layout::new;
 
 pub const NAME: &str = "DynamicLayout";
 
-#[export_root_module]
-fn instantiate_root_module() -> LayoutManagerBuilderRef {
+#[cfg_attr(not(feature = "embedded"), export_root_module)]
+pub fn instantiate_root_module() -> LayoutManagerBuilderRef {
     LayoutManagerBuilder {
         new,
         name: NAME.into(),
