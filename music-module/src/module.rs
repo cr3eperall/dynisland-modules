@@ -26,7 +26,9 @@ use dynisland_core::{
     dynamic_property::DynamicPropertyAny,
     ron,
 };
+#[cfg(not(feature = "embedded"))]
 use env_logger::Env;
+#[cfg(not(feature = "embedded"))]
 use log::Level;
 use mpris::{DBusError, TrackID};
 use ron::ser::PrettyConfig;

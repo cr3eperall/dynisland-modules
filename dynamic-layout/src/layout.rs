@@ -21,10 +21,12 @@ use dynisland_core::{
     graphics::activity_widget::{boxed_activity_mode::ActivityMode, ActivityWidget},
     ron,
 };
+#[cfg(not(feature = "embedded"))]
 use env_logger::Env;
+#[cfg(not(feature = "embedded"))]
+use log::Level;
 use glib::SourceId;
 use gtk::prelude::*;
-use log::Level;
 use ron::ser::PrettyConfig;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 

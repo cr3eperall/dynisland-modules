@@ -16,7 +16,7 @@ Everything from compact mode plus the artist name and controls
 
 ## Configuration
 
-- `preferred_player`: The player to use, if it's not available, it will use the first active player.
+- `preferred_player`: The player to use, if it's not available, it will use the first active player it finds. If it's set to `""`, it will dynamically choose the active player.
 
 - `default_album_art_url`: The url of the default album art, it can be a local file (must start with `file://`) or a remote url (starts with `http://` or `https://`).
 

@@ -20,10 +20,12 @@ use dynisland_core::{
     base_module::{BaseModule, ProducerRuntime},
     ron,
 };
+#[cfg(not(feature = "embedded"))]
 use env_logger::Env;
+#[cfg(not(feature = "embedded"))]
+use log::Level;
 use glib::object::CastNone;
 use gtk::prelude::WidgetExt;
-use log::Level;
 use ron::ser::PrettyConfig;
 use serde::{Deserialize, Serialize};
 

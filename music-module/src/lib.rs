@@ -1,4 +1,6 @@
-use abi_stable::{export_root_module, prefix_type::PrefixTypeTrait};
+#[cfg(not(feature = "embedded"))]
+use abi_stable::export_root_module;
+use abi_stable::prefix_type::PrefixTypeTrait;
 use dynisland_core::abi::module::{ModuleBuilder, ModuleBuilderRef};
 
 pub mod module;
