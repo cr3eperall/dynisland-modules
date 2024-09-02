@@ -200,7 +200,7 @@ impl SabiLayoutManager for DynamicLayout {
             })
     }
 
-    fn list_windows(&self,) -> RVec<RString> {
+    fn list_windows(&self) -> RVec<RString> {
         self.order_managers
             .borrow()
             .keys()

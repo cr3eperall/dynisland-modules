@@ -1,6 +1,7 @@
 use abi_stable::{export_root_module, prefix_type::PrefixTypeTrait};
 use dynisland_core::abi::module::{ModuleBuilder, ModuleBuilderRef};
 
+mod config;
 mod module;
 mod widget;
 use module::new;

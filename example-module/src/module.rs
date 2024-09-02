@@ -1,4 +1,4 @@
-use std::vec;
+use std::collections::HashMap;
 
 use abi_stable::{
     external_types::crossbeam_channel::RSender,
@@ -10,11 +10,10 @@ use abi_stable::{
         RString,
     },
 };
-use anyhow::Context;
 use dynisland_core::{
     abi::{
         abi_stable, gdk, glib, gtk, log,
-        module::{ModuleType, SabiModule, SabiModule_TO, UIServerCommand},
+        module::{ActivityIdentifier, ModuleType, SabiModule, SabiModule_TO, UIServerCommand},
     },
     base_module::{BaseModule, ProducerRuntime},
     ron,
@@ -22,35 +21,17 @@ use dynisland_core::{
 use env_logger::Env;
 use log::Level;
 use ron::ser::PrettyConfig;
-use serde::{Deserialize, Serialize};
 
-use super::{widget, NAME};
+use super::NAME;
+use crate::{
+    config::{ExampleConfigMain, ExampleConfigMainOptional},
+    widget,
+};
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(default)]
-pub struct ExampleConfig {
-    pub number_of_widgets: u32,
-    pub int: i32,
-    pub string: String,
-    pub vec: Vec<String>,
-    pub duration: u64,
-}
-
-impl Default for ExampleConfig {
-    fn default() -> Self {
-        Self {
-            number_of_widgets: 1,
-            int: 0,
-            string: String::from("Example1"),
-            vec: vec![String::from("Example2"), String::from("Example3")],
-            duration: 400,
-        }
-    }
-}
 pub struct ExampleModule {
     base_module: BaseModule<ExampleModule>,
     producers_rt: ProducerRuntime,
-    config: ExampleConfig,
+    config: ExampleConfigMain,
 }
 
 #[sabi_extern_fn]
@@ -64,7 +45,7 @@ pub fn new(app_send: RSender<UIServerCommand>) -> RResult<ModuleType, RBoxError>
     let this = ExampleModule {
         base_module,
         producers_rt: ProducerRuntime::new(),
-        config: ExampleConfig::default(),
+        config: ExampleConfigMain::default(),
     };
     ROk(SabiModule_TO::from_value(this, TD_CanDowncast))
 }
@@ -72,24 +53,9 @@ pub fn new(app_send: RSender<UIServerCommand>) -> RResult<ModuleType, RBoxError>
 impl SabiModule for ExampleModule {
     #[allow(clippy::let_and_return)]
     fn init(&self) {
-        let widget_count = self.config.number_of_widgets;
         let base_module = self.base_module.clone();
         glib::MainContext::default().spawn_local(async move {
-            let act = widget::get_activity(base_module.prop_send(), NAME, "exampleActivity0");
-            //register activity and data producer
-            base_module.register_activity(act).unwrap();
             base_module.register_producer(producer);
-            for i in 1..widget_count {
-                //create activity
-                let act = widget::get_activity(
-                    base_module.prop_send(),
-                    NAME,
-                    format!("exampleActivity{}", i).as_str(),
-                );
-
-                //register activity and data producer
-                base_module.register_activity(act).unwrap();
-            }
         });
         let fallback_provider = gtk::CssProvider::new();
         let css = grass::from_string(include_str!("../default.scss"), &grass::Options::default())
@@ -106,19 +72,27 @@ impl SabiModule for ExampleModule {
 
     #[allow(clippy::let_and_return)]
     fn update_config(&mut self, config: RString) -> RResult<(), RBoxError> {
-        let conf = ron::from_str::<ron::Value>(&config)
-            .with_context(|| "failed to parse config to value")
-            .unwrap();
+        log::trace!("config: {}", config);
 
-        self.config = conf
-            .into_rust()
-            .with_context(|| "failed to parse config to struct")
-            .unwrap();
+        let mut opt_conf = ExampleConfigMainOptional::default();
+        match serde_json::from_str(&config) {
+            Ok(conf) => {
+                opt_conf = conf;
+            }
+            Err(err) => {
+                log::error!(
+                    "Failed to parse config into struct, using default: {:#?}",
+                    err
+                );
+            }
+        }
+        self.config = opt_conf.into_main_config();
+        log::debug!("current config: {:#?}", self.config);
         ROk(())
     }
 
     fn default_config(&self) -> RResult<RString, RBoxError> {
-        match ron::ser::to_string_pretty(&ExampleConfig::default(), PrettyConfig::default()) {
+        match ron::ser::to_string_pretty(&ExampleConfigMain::default(), PrettyConfig::default()) {
             Ok(conf) => ROk(RString::from(conf)),
             Err(err) => RErr(RBoxError::new(err)),
         }
@@ -139,47 +113,136 @@ impl SabiModule for ExampleModule {
     }
 }
 
+pub(crate) fn get_conf_idx(id: &ActivityIdentifier) -> usize {
+    id.metadata()
+        .additional_metadata()
+        .unwrap()
+        .split("|")
+        .find(|s| s.starts_with("instance="))
+        .unwrap()
+        .split("=")
+        .last()
+        .unwrap()
+        .parse::<usize>()
+        .unwrap()
+}
+
 #[allow(unused_variables)]
 fn producer(module: &ExampleModule) {
-    let config: &ExampleConfig = &module.config;
+    let config = &module.config;
 
-    let registered_activities = module.base_module.registered_activities();
-    let registered_activities_lock = registered_activities.blocking_lock();
-    let label = registered_activities_lock
-        .get_property_any_blocking("exampleActivity0", "comp-label")
-        .unwrap();
-    let scrolling_text = registered_activities_lock
-        .get_property_any_blocking("exampleActivity0", "scrolling-label-text")
-        .unwrap();
-    let rolling_char = registered_activities_lock
-        .get_property_any_blocking("exampleActivity0", "rolling-char")
-        .unwrap();
+    let activities = module.base_module.registered_activities();
+    let current_activities = activities.blocking_lock().list_activities();
+    let desired_activities: Vec<(&str, usize)> = config
+        .windows
+        .iter()
+        .map(|(window_name, configs)| (window_name.as_str(), configs.len()))
+        .collect();
+    let (to_remove, to_add) = acitvities_to_update(&current_activities, &desired_activities);
+    for act in to_remove {
+        log::trace!("Removing activity {}", act);
+        module.base_module.unregister_activity(act);
+    }
+    for (window, idx) in to_add {
+        let act = widget::get_activity(
+            module.base_module.prop_send(),
+            crate::NAME,
+            "example-activity",
+            window,
+            idx,
+        );
+        log::trace!("Adding activity {}", act.get_identifier());
+        module.base_module.register_activity(act).unwrap();
+    }
+    let activities = module.base_module.registered_activities();
+    let activity_list = activities.blocking_lock().list_activities();
+    for activity in activity_list {
+        let activity_name = activity.activity();
+        let config = config.get_for_window(
+            activity
+                .metadata()
+                .window_name()
+                .unwrap_or_default()
+                .as_str(),
+        );
+        let conf_idx = get_conf_idx(&activity);
+        let label = activities
+            .blocking_lock()
+            .get_property_any_blocking(activity_name, "comp-label")
+            .unwrap();
+        let scrolling_text = activities
+            .blocking_lock()
+            .get_property_any_blocking(activity_name, "scrolling-label-text")
+            .unwrap();
+        let rolling_char = activities
+            .blocking_lock()
+            .get_property_any_blocking(activity_name, "rolling-char")
+            .unwrap();
 
-    let config = config.clone();
-    // debug!("starting task");
-    module.producers_rt.handle().spawn(async move {
-        // debug!("task started");
-        loop {
-            rolling_char.lock().await.set('0').unwrap();
-            tokio::time::sleep(tokio::time::Duration::from_millis(config.duration)).await;
-            rolling_char.lock().await.set('1').unwrap();
-            tokio::time::sleep(tokio::time::Duration::from_millis(config.duration)).await;
-            rolling_char.lock().await.set('2').unwrap();
-            tokio::time::sleep(tokio::time::Duration::from_millis(config.duration)).await;
-            rolling_char.lock().await.set('3').unwrap();
-            tokio::time::sleep(tokio::time::Duration::from_millis(config.duration)).await;
-            rolling_char.lock().await.set('4').unwrap();
-            tokio::time::sleep(tokio::time::Duration::from_millis(config.duration)).await;
+        let conf = config.get(conf_idx).unwrap().clone();
+        // log::debug!("starting task");
+        module.producers_rt.handle().spawn(async move {
+            // log::debug!("task started");
+            loop {
+                rolling_char.lock().await.set('0').unwrap();
+                tokio::time::sleep(tokio::time::Duration::from_millis(conf.duration)).await;
+                rolling_char.lock().await.set('1').unwrap();
+                tokio::time::sleep(tokio::time::Duration::from_millis(conf.duration)).await;
+                rolling_char.lock().await.set('2').unwrap();
+                tokio::time::sleep(tokio::time::Duration::from_millis(conf.duration)).await;
+                rolling_char.lock().await.set('3').unwrap();
+                tokio::time::sleep(tokio::time::Duration::from_millis(conf.duration)).await;
+                rolling_char.lock().await.set('4').unwrap();
+                tokio::time::sleep(tokio::time::Duration::from_millis(conf.duration)).await;
 
-            scrolling_text
-                .lock()
-                .await
-                .set("Scrolling Label but longer".to_string())
-                .unwrap();
-            tokio::time::sleep(tokio::time::Duration::from_millis(17000)).await;
+                scrolling_text
+                    .lock()
+                    .await
+                    .set("Scrolling Label but longer".to_string())
+                    .unwrap();
+                tokio::time::sleep(tokio::time::Duration::from_millis(17000)).await;
 
-            scrolling_text.lock().await.set("Hi".to_string()).unwrap();
-            tokio::time::sleep(tokio::time::Duration::from_millis(4000)).await;
+                scrolling_text.lock().await.set("Hi".to_string()).unwrap();
+                tokio::time::sleep(tokio::time::Duration::from_millis(4000)).await;
+            }
+        });
+    }
+}
+
+pub fn acitvities_to_update<'a>(
+    current: &'a Vec<ActivityIdentifier>,
+    desired: &'a Vec<(&'a str, usize)>,
+) -> (Vec<&'a str>, Vec<(&'a str, usize)>) {
+    // (remove, add)
+    //remove activities
+    let mut to_remove = Vec::new();
+    let mut current_windows = HashMap::new();
+    for act in current {
+        let idx = get_conf_idx(act);
+        let window_name = act.metadata().window_name().unwrap_or_default();
+        if desired
+            .iter()
+            .find(|(name, count)| *name == window_name && *count > idx)
+            .is_none()
+        {
+            to_remove.push(act.activity());
         }
-    });
+        let idx: usize = *current_windows.get(&window_name).unwrap_or(&0).max(&idx);
+        current_windows.insert(window_name, idx);
+    }
+    //add activities
+    let mut to_add = Vec::new();
+    for (window_name, count) in desired {
+        if !current_windows.contains_key(&window_name.to_string()) {
+            for i in 0..*count {
+                to_add.push((*window_name, i));
+            }
+        } else {
+            let current_idx = current_windows.get(*window_name).unwrap() + 1;
+            for i in current_idx..*count {
+                to_add.push((*window_name, i));
+            }
+        }
+    }
+    (to_remove, to_add)
 }

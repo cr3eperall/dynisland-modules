@@ -18,15 +18,23 @@ pub fn get_activity(
     prop_send: tokio::sync::mpsc::UnboundedSender<PropertyUpdate>,
     module: &str,
     name: &str,
+    window: &str,
+    idx: usize,
 ) -> DynamicActivity {
-    let mut activity = DynamicActivity::new(prop_send, module, name);
-
+    let mut dynamic_act = DynamicActivity::new_with_metadata(
+        prop_send,
+        module,
+        &(name.to_string() + "-" + &idx.to_string()),
+        Some(window),
+        Some(&("instance=".to_string() + &idx.to_string())),
+    );
     //create activity widget
-    let activity_widget = activity.get_activity_widget();
+    let activity_widget = dynamic_act.get_activity_widget();
+    activity_widget.add_css_class(name);
 
     //get widgets
-    let minimal = Minimal::new(&mut activity);
-    let compact = Compact::new(&mut activity);
+    let minimal = Minimal::new(&mut dynamic_act);
+    let compact = Compact::new(&mut dynamic_act);
     let expanded = Expanded::new();
     let overlay = Overlay::new();
 
@@ -38,7 +46,7 @@ pub fn get_activity(
 
     register_mode_gestures(activity_widget);
 
-    activity
+    dynamic_act
 }
 
 fn register_mode_gestures(activity_widget: ActivityWidget) {
