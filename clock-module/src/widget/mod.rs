@@ -15,11 +15,19 @@ pub fn get_activity(
     prop_send: tokio::sync::mpsc::UnboundedSender<PropertyUpdate>,
     module: &str,
     name: &str,
+    window: &str,
+    idx: usize,
 ) -> DynamicActivity {
-    let mut dynamic_act = DynamicActivity::new(prop_send, module, name);
+    let mut dynamic_act = DynamicActivity::new_with_metadata(
+        prop_send,
+        module,
+        &(name.to_string() + "-" + &idx.to_string()),
+        Some(window),
+        Some(&("instance=".to_string() + &idx.to_string())),
+    );
 
     let activity_widget = dynamic_act.get_activity_widget();
-
+    activity_widget.add_css_class(name);
     let minimal = Clock::new(&mut dynamic_act);
     minimal.set_width_request(30);
     minimal.set_height_request(30);

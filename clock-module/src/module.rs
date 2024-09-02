@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{collections::HashMap, time::Duration};
 
 use abi_stable::{
     external_types::crossbeam_channel::RSender,
@@ -10,57 +10,33 @@ use abi_stable::{
         RString,
     },
 };
-use anyhow::Context;
 use chrono::Local;
 use dynisland_core::{
     abi::{
         abi_stable, gdk, glib, gtk, log,
-        module::{ModuleType, SabiModule, SabiModule_TO, UIServerCommand},
+        module::{ActivityIdentifier, ModuleType, SabiModule, SabiModule_TO, UIServerCommand},
     },
     base_module::{BaseModule, ProducerRuntime},
     ron,
 };
 #[cfg(not(feature = "embedded"))]
 use env_logger::Env;
-#[cfg(not(feature = "embedded"))]
-use log::Level;
 use glib::object::CastNone;
 use gtk::prelude::WidgetExt;
+#[cfg(not(feature = "embedded"))]
+use log::Level;
 use ron::ser::PrettyConfig;
-use serde::{Deserialize, Serialize};
 
 use crate::{
+    config::{ClockConfigMain, ClockConfigMainOptional},
     widget::{clock::Clock, compact::Compact, get_activity},
     NAME,
 };
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(default)]
-pub struct ClockConfig {
-    format_24h: bool,
-    hour_hand_color: String,
-    minute_hand_color: String,
-    tick_color: String,
-    circle_color: String,
-}
-
-#[allow(clippy::derivable_impls)]
-impl Default for ClockConfig {
-    fn default() -> Self {
-        Self {
-            format_24h: true,
-            hour_hand_color: String::from("white"),
-            minute_hand_color: String::from("white"),
-            circle_color: String::from("lightgray"),
-            tick_color: String::from("lightgray"),
-        }
-    }
-}
-
 pub struct ClockModule {
     base_module: BaseModule<ClockModule>,
     producers_rt: ProducerRuntime,
-    config: ClockConfig,
+    config: ClockConfigMain,
 }
 
 #[sabi_extern_fn]
@@ -77,7 +53,7 @@ pub fn new(app_send: RSender<UIServerCommand>) -> RResult<ModuleType, RBoxError>
     let this = ClockModule {
         base_module,
         producers_rt,
-        config: ClockConfig::default(),
+        config: ClockConfigMain::default(),
     };
     ROk(SabiModule_TO::from_value(this, TD_CanDowncast))
 }
@@ -87,8 +63,6 @@ impl SabiModule for ClockModule {
         let base_module = self.base_module.clone();
         glib::MainContext::default().spawn_local(async move {
             base_module.register_producer(self::producer);
-            let activity = get_activity(base_module.prop_send(), crate::NAME, "clock-activity");
-            base_module.register_activity(activity).unwrap();
         });
 
         let fallback_provider = gtk::CssProvider::new();
@@ -105,23 +79,26 @@ impl SabiModule for ClockModule {
     }
 
     fn update_config(&mut self, config: RString) -> RResult<(), RBoxError> {
-        let conf = ron::from_str::<ron::Value>(&config)
-            .with_context(|| "failed to parse config to value")
-            .unwrap();
-        match conf.into_rust() {
+        log::trace!("config: {}", config);
+        let mut opt_conf: ClockConfigMainOptional = ClockConfigMainOptional::default();
+        match serde_json::from_str(&config) {
             Ok(conf) => {
-                self.config = conf;
+                opt_conf = conf;
             }
             Err(err) => {
-                log::error!("Failed to parse config into struct: {:#?}", err);
-                return RErr(RBoxError::new(err));
+                log::warn!(
+                    "Failed to parse clock config into struct, using default: {:#?}",
+                    err
+                );
             }
         }
+        self.config = opt_conf.into_main_config();
+        log::debug!("current config: {:#?}", self.config);
         ROk(())
     }
 
     fn default_config(&self) -> RResult<RString, RBoxError> {
-        match ron::ser::to_string_pretty(&ClockConfig::default(), PrettyConfig::default()) {
+        match ron::ser::to_string_pretty(&ClockConfigMain::default(), PrettyConfig::default()) {
             Ok(conf) => ROk(RString::from(conf)),
             Err(err) => RErr(RBoxError::new(err)),
         }
@@ -142,43 +119,134 @@ impl SabiModule for ClockModule {
     }
 }
 
+pub(crate) fn get_conf_idx(id: &ActivityIdentifier) -> usize {
+    id.metadata()
+        .additional_metadata()
+        .unwrap()
+        .split("|")
+        .find(|s| s.starts_with("instance="))
+        .unwrap()
+        .split("=")
+        .last()
+        .unwrap()
+        .parse::<usize>()
+        .unwrap()
+}
+
 #[allow(unused_variables)]
 fn producer(module: &ClockModule) {
     let config = &module.config;
 
     let activities = module.base_module.registered_activities();
-
-    if let Ok(act) = activities.blocking_lock().get_activity("clock-activity") {
-        let comp = act
-            .blocking_lock()
-            .get_activity_widget()
-            .compact_mode_widget()
-            .and_downcast::<Compact>()
-            .unwrap();
-        comp.set_format_24h(config.format_24h);
-        let clock = act
-            .blocking_lock()
-            .get_activity_widget()
-            .minimal_mode_widget()
-            .and_downcast::<Clock>()
-            .unwrap();
-        clock.set_hour_hand_color(config.hour_hand_color.clone());
-        clock.set_minute_hand_color(config.minute_hand_color.clone());
-        clock.set_circle_color(config.circle_color.clone());
-        clock.set_tick_color(config.tick_color.clone());
-        clock.queue_draw();
+    let current_activities = activities.blocking_lock().list_activities();
+    let desired_activities: Vec<(&str, usize)> = config
+        .windows
+        .iter()
+        .map(|(window_name, configs)| (window_name.as_str(), configs.len()))
+        .collect();
+    let (to_remove, to_add) = acitvities_to_update(&current_activities, &desired_activities);
+    for act in to_remove {
+        log::trace!("Removing activity {}", act);
+        module.base_module.unregister_activity(act);
+    }
+    for (window, idx) in to_add {
+        let act = get_activity(
+            module.base_module.prop_send(),
+            crate::NAME,
+            "clock-activity",
+            window,
+            idx,
+        );
+        log::trace!("Adding activity {}", act.get_identifier());
+        module.base_module.register_activity(act).unwrap();
     }
 
-    let time = activities
-        .blocking_lock()
-        .get_property_any_blocking("clock-activity", "time")
-        .unwrap();
+    let activity_list = activities.blocking_lock().list_activities();
+    let mut time_list = Vec::new();
+    for activity_id in activity_list {
+        let activity_name = activity_id.activity();
+        if let Ok(act) = activities.blocking_lock().get_activity(activity_name) {
+            let conf_idx = get_conf_idx(&activity_id);
+            let config = config.get_for_window(
+                activity_id
+                    .metadata()
+                    .window_name()
+                    .unwrap_or_default()
+                    .as_str(),
+            );
+            let comp = act
+                .blocking_lock()
+                .get_activity_widget()
+                .compact_mode_widget()
+                .and_downcast::<Compact>()
+                .unwrap();
+            comp.set_format_24h(config[conf_idx].format_24h);
+            let clock = act
+                .blocking_lock()
+                .get_activity_widget()
+                .minimal_mode_widget()
+                .and_downcast::<Clock>()
+                .unwrap();
+            clock.set_hour_hand_color(config[conf_idx].hour_hand_color.clone());
+            clock.set_minute_hand_color(config[conf_idx].minute_hand_color.clone());
+            clock.set_circle_color(config[conf_idx].circle_color.clone());
+            clock.set_tick_color(config[conf_idx].tick_color.clone());
+            clock.queue_draw();
+        }
+        time_list.push(
+            activities
+                .blocking_lock()
+                .get_property_any_blocking(activity_name, "time")
+                .unwrap(),
+        );
+    }
 
     module.producers_rt.handle().spawn(async move {
         loop {
             tokio::time::sleep(Duration::from_millis(500)).await;
-            time.lock().await.set(Local::now()).unwrap();
+            let now = Local::now();
+            for time in time_list.iter() {
+                time.lock().await.set(now).unwrap();
+            }
         }
     });
     // todo!("do stuff")
+}
+
+pub fn acitvities_to_update<'a>(
+    current: &'a Vec<ActivityIdentifier>,
+    desired: &'a Vec<(&'a str, usize)>,
+) -> (Vec<&'a str>, Vec<(&'a str, usize)>) {
+    // (remove, add)
+    //remove activities
+    let mut to_remove = Vec::new();
+    let mut current_windows = HashMap::new();
+    for act in current {
+        let idx = get_conf_idx(act);
+        let window_name = act.metadata().window_name().unwrap_or_default();
+        if desired
+            .iter()
+            .find(|(name, count)| *name == window_name && *count > idx)
+            .is_none()
+        {
+            to_remove.push(act.activity());
+        }
+        let idx: usize = *current_windows.get(&window_name).unwrap_or(&0).max(&idx);
+        current_windows.insert(window_name, idx);
+    }
+    //add activities
+    let mut to_add = Vec::new();
+    for (window_name, count) in desired {
+        if !current_windows.contains_key(&window_name.to_string()) {
+            for i in 0..*count {
+                to_add.push((*window_name, i));
+            }
+        } else {
+            let current_idx = current_windows.get(*window_name).unwrap() + 1;
+            for i in current_idx..*count {
+                to_add.push((*window_name, i));
+            }
+        }
+    }
+    (to_remove, to_add)
 }
