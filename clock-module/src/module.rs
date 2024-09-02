@@ -96,7 +96,9 @@ impl SabiModule for ClockModule {
     }
 
     fn default_config(&self) -> RResult<RString, RBoxError> {
-        match ron::ser::to_string_pretty(&ClockConfigMain::default(), PrettyConfig::default()) {
+        let mut conf = ClockConfigMain::default();
+        conf.windows.clear();
+        match ron::ser::to_string_pretty(&conf, PrettyConfig::default()) {
             Ok(conf) => ROk(RString::from(conf)),
             Err(err) => RErr(RBoxError::new(err)),
         }

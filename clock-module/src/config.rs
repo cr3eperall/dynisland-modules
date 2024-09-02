@@ -17,8 +17,8 @@ pub struct ClockConfigMain {
 
 impl Default for ClockConfigMain {
     fn default() -> Self {
-        let map = HashMap::new();
-        // map.insert("".to_string(), ClockConfig::default());
+        let mut map = HashMap::new();
+        map.insert("".to_string(), vec![ClockConfig::default()]);
         Self {
             format_24h: true,
             hour_hand_color: String::from("white"),

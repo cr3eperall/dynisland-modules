@@ -123,9 +123,9 @@ impl MprisPlayer {
     }
 }
 
-impl Clone for MprisPlayer {
-    fn clone(&self) -> Self {
-        Self::new(self.player.lock().unwrap().bus_name_player_name_part()).unwrap()
+impl MprisPlayer {
+    pub fn try_clone(&self) -> Option<Self> {
+        Self::new(self.player.lock().unwrap().bus_name_player_name_part()).ok()
     }
 }
 

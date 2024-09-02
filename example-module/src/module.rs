@@ -90,7 +90,9 @@ impl SabiModule for ExampleModule {
     }
 
     fn default_config(&self) -> RResult<RString, RBoxError> {
-        match ron::ser::to_string_pretty(&ExampleConfigMain::default(), PrettyConfig::default()) {
+        let mut conf = ExampleConfigMain::default();
+        conf.windows.clear();
+        match ron::ser::to_string_pretty(&conf, PrettyConfig::default()) {
             Ok(conf) => ROk(RString::from(conf)),
             Err(err) => RErr(RBoxError::new(err)),
         }

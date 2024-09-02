@@ -22,13 +22,13 @@ use crate::{
 #[derive(Debug, Serialize, Clone)]
 #[serde(default)]
 pub struct DynamicLayoutConfigMain {
-    pub(super) window_position: WindowPosition,
-    pub(super) auto_minimize_timeout: i32,
-    pub(super) max_activities: u16,
-    pub(super) max_active: u16,
-    pub(super) reorder_on_add: bool,
-    pub(super) reorder_on_reload: bool,
-    pub(super) windows: HashMap<String, DynamicLayoutConfig>,
+    pub(crate) window_position: WindowPosition,
+    pub(crate) auto_minimize_timeout: i32,
+    pub(crate) max_activities: u16,
+    pub(crate) max_active: u16,
+    pub(crate) reorder_on_add: bool,
+    pub(crate) reorder_on_reload: bool,
+    pub(crate) windows: HashMap<String, DynamicLayoutConfig>,
 }
 
 pub const DEFAULT_AUTO_MINIMIZE_TIMEOUT: i32 = 5000;
@@ -38,7 +38,6 @@ impl Default for DynamicLayoutConfigMain {
         let mut map = HashMap::new();
         map.insert("".to_string(), DynamicLayoutConfig::default());
         Self {
-            // orientation_horizontal: true,
             window_position: WindowPosition::default(),
             auto_minimize_timeout: DEFAULT_AUTO_MINIMIZE_TIMEOUT,
             max_activities: 3,
@@ -53,7 +52,6 @@ impl Default for DynamicLayoutConfigMain {
 impl DynamicLayoutConfigMain {
     pub fn default_conf(&self) -> DynamicLayoutConfig {
         DynamicLayoutConfig {
-            // orientation_horizontal: self.orientation_horizontal,
             window_position: self.window_position.clone(),
             auto_minimize_timeout: self.auto_minimize_timeout,
             max_activities: self.max_activities,
@@ -75,23 +73,22 @@ impl DynamicLayoutConfigMain {
 #[serde(default)]
 pub struct DynamicLayoutConfig {
     #[serde(skip_serializing)]
-    pub(super) window_position: WindowPosition,
+    pub(crate) window_position: WindowPosition,
     #[serde(skip_serializing)]
-    pub(super) auto_minimize_timeout: i32,
+    pub(crate) auto_minimize_timeout: i32,
     #[serde(skip_serializing)]
-    pub(super) max_activities: u16,
+    pub(crate) max_activities: u16,
     #[serde(skip_serializing)]
-    pub(super) max_active: u16,
+    pub(crate) max_active: u16,
     #[serde(skip_serializing)]
-    pub(super) reorder_on_add: bool,
+    pub(crate) reorder_on_add: bool,
     #[serde(skip_serializing)]
-    pub(super) reorder_on_reload: bool,
-    pub(super) activity_order: Vec<ActivityMatch>,
+    pub(crate) reorder_on_reload: bool,
+    pub(crate) activity_order: Vec<ActivityMatch>,
 }
 impl Default for DynamicLayoutConfig {
     fn default() -> Self {
         Self {
-            // orientation_horizontal: true,
             window_position: WindowPosition::default(),
             auto_minimize_timeout: DEFAULT_AUTO_MINIMIZE_TIMEOUT,
             max_activities: 3,
@@ -105,13 +102,13 @@ impl Default for DynamicLayoutConfig {
 #[derive(Debug, Deserialize, Clone)]
 #[serde(default)]
 pub struct DeDynamicLayoutConfigMain {
-    pub(super) window_position: WindowPosition,
-    pub(super) auto_minimize_timeout: i32,
-    pub(super) max_activities: u16,
-    pub(super) max_active: u16,
-    pub(super) reorder_on_add: bool,
-    pub(super) reorder_on_reload: bool,
-    pub(super) windows: HashMap<String, DeDynamicLayoutConfig>,
+    window_position: WindowPosition,
+    auto_minimize_timeout: i32,
+    max_activities: u16,
+    max_active: u16,
+    reorder_on_add: bool,
+    reorder_on_reload: bool,
+    windows: HashMap<String, DeDynamicLayoutConfig>,
 }
 
 impl Default for DeDynamicLayoutConfigMain {
@@ -196,13 +193,13 @@ impl DeDynamicLayoutConfigMain {
 #[derive(Debug, Deserialize, Clone, Default)]
 #[serde(default)]
 pub struct DeDynamicLayoutConfig {
-    pub(super) window_position: Option<DeWindowPosition>,
-    pub(super) auto_minimize_timeout: Option<i32>,
-    pub(super) max_activities: Option<u16>,
-    pub(super) max_active: Option<u16>,
-    pub(super) reorder_on_add: Option<bool>,
-    pub(super) reorder_on_reload: Option<bool>,
-    pub(super) activity_order: Option<Vec<String>>,
+    window_position: Option<DeWindowPosition>,
+    auto_minimize_timeout: Option<i32>,
+    max_activities: Option<u16>,
+    max_active: Option<u16>,
+    reorder_on_add: Option<bool>,
+    reorder_on_reload: Option<bool>,
+    activity_order: Option<Vec<String>>,
 }
 
 impl DeDynamicLayoutConfig {
@@ -258,7 +255,7 @@ impl FromStr for ActivityMatch {
     }
 }
 impl ActivityMatch {
-    pub(super) fn contains(&self, id: &ActivityIdentifier) -> bool {
+    pub(crate) fn contains(&self, id: &ActivityIdentifier) -> bool {
         match self {
             ActivityMatch::Activity(activity_id) => {
                 id.module().eq_ignore_ascii_case(&activity_id.module())

@@ -98,6 +98,7 @@ impl SabiModule for ScriptModule {
 
     fn default_config(&self) -> RResult<RString, RBoxError> {
         let mut conf = ScriptConfigMain::default();
+        conf.windows.clear();
         let default_conf = ScriptConfig {
             exec: "echo \"update your config file: see wiki\"".to_string(),
             ..Default::default()

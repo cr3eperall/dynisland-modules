@@ -17,7 +17,8 @@ pub struct ScriptConfigMain {
 
 impl Default for ScriptConfigMain {
     fn default() -> Self {
-        let map = std::collections::HashMap::new();
+        let mut map = std::collections::HashMap::new();
+        map.insert("".to_string(), vec![ScriptConfig::default()]);
         Self {
             scrolling: true,
             scrolling_speed: 30.0,
@@ -77,10 +78,10 @@ impl Default for ScriptConfig {
 #[derive(Debug, Deserialize, Clone)]
 #[serde(default)]
 pub struct DeScriptConfigMain {
-    pub(crate) scrolling: bool,
-    pub(crate) scrolling_speed: f32,
-    pub(crate) max_width: i32,
-    pub(crate) minimal_image: String,
+    scrolling: bool,
+    scrolling_speed: f32,
+    max_width: i32,
+    minimal_image: String,
     windows: HashMap<String, Vec<DeScriptConfig>>,
 }
 

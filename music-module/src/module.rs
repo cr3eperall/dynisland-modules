@@ -268,7 +268,13 @@ fn producer(module: &MusicModule) {
     let producer_rt = module.producers_rt.clone();
     let find_new_player_channel = module.find_new_player.clone();
     let config1 = config.clone();
-    let player1 = player.clone();
+    let player1 = match player.try_clone() {
+        Some(player) => {player},
+        None => {
+            find_new_player_channel.send(()).unwrap();
+            return;
+        },
+    };
     module.producers_rt.handle().spawn(async move {
         //init UI
         let metadata = player1.get_metadata();
@@ -386,7 +392,15 @@ fn producer(module: &MusicModule) {
     });
 
     // Execute actions from UI
-    action_task(module, player.clone(), seek_tx);
+    let find_new_player_channel = module.find_new_player.clone();
+    let player1 = match player.try_clone() {
+        Some(player) => {player},
+        None => {
+            find_new_player_channel.send(()).unwrap();
+            return;
+        },
+    };
+    action_task(module, player1, seek_tx);
 
     // Check if config player came back
     wait_for_new_player_task(module, player);

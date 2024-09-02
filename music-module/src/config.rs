@@ -62,15 +62,15 @@ impl Default for MusicConfig {
 
 // #[derive(Debug, Serialize, Clone)]
 // #[serde(default)]
-// pub struct MusicConfigMainOptional {
-//     pub(crate) preferred_player: String,
-//     pub(crate) default_album_art_url: String,
-//     pub(crate) scrolling_label_speed: f32,
-//     pub(crate) cava_visualizer_script: String,
-//     windows: HashMap<String, Vec<MusicConfigOptional>>,
+// pub struct DeMusicConfigMain {
+//     preferred_player: String,
+//     default_album_art_url: String,
+//     scrolling_label_speed: f32,
+//     cava_visualizer_script: String,
+//     windows: HashMap<String, Vec<DeMusicConfig>>,
 // }
 
-// impl Default for MusicConfigMainOptional {
+// impl Default for DeMusicConfigMain {
 //     fn default() -> Self {
 //         let map = HashMap::new();
 //         Self {
@@ -83,7 +83,7 @@ impl Default for MusicConfig {
 //     }
 // }
 
-// impl MusicConfigMainOptional {
+// impl DeMusicConfigMain {
 //     pub fn into_main_config(self) -> MusicConfigMain {
 //         let mut windows = HashMap::new();
 //         for (window_name, opt_conf_vec) in self.windows {
@@ -119,9 +119,9 @@ impl Default for MusicConfig {
 
 // #[derive(Debug, Serialize, Clone, Default)]
 // #[serde(default)]
-// pub struct MusicConfigOptional {
-//     pub(crate) preferred_player: Option<String>,
-//     pub(crate) default_album_art_url: Option<String>,
-//     pub(crate) scrolling_label_speed: Option<f32>,
-//     pub(crate) cava_visualizer_script: Option<String>,
+// pub struct DeMusicConfig {
+//     preferred_player: Option<String>,
+//     default_album_art_url: Option<String>,
+//     scrolling_label_speed: Option<f32>,
+//     cava_visualizer_script: Option<String>,
 // }

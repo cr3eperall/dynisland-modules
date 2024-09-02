@@ -7,16 +7,17 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Clone)]
 #[serde(default)]
 pub struct ExampleConfigMain {
-    pub int: i32,
-    pub string: String,
-    pub vec: Vec<String>,
-    pub duration: u64,
-    pub windows: HashMap<String, Vec<ExampleConfig>>,
+    pub(crate) int: i32,
+    pub(crate) string: String,
+    pub(crate) vec: Vec<String>,
+    pub(crate) duration: u64,
+    pub(crate) windows: HashMap<String, Vec<ExampleConfig>>,
 }
 
 impl Default for ExampleConfigMain {
     fn default() -> Self {
-        let map = HashMap::new();
+        let mut map = HashMap::new();
+        map.insert("".to_string(), vec![ExampleConfig::default()]);
         Self {
             int: 0,
             string: String::from("Example1"),
@@ -47,10 +48,10 @@ impl ExampleConfigMain {
 #[derive(Debug, Serialize, Clone)]
 #[serde(default)]
 pub struct ExampleConfig {
-    pub int: i32,
-    pub string: String,
-    pub vec: Vec<String>,
-    pub duration: u64,
+    pub(crate) int: i32,
+    pub(crate) string: String,
+    pub(crate) vec: Vec<String>,
+    pub(crate) duration: u64,
 }
 
 impl Default for ExampleConfig {
@@ -71,7 +72,7 @@ pub struct DeExampleConfigMain {
     vec: Vec<String>,
     duration: u64,
     windows: HashMap<String, Vec<DeExampleConfig>>,
-}
+}  
 
 impl Default for DeExampleConfigMain {
     fn default() -> Self {
