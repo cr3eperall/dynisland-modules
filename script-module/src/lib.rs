@@ -6,6 +6,7 @@ use dynisland_core::abi::{
     module::{ModuleBuilder, ModuleBuilderRef},
 };
 
+pub mod config;
 pub mod module;
 pub mod utils;
 pub mod widget;
