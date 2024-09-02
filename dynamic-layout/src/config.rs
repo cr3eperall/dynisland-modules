@@ -1,4 +1,9 @@
-use std::{str::FromStr, time::Duration};
+use std::{
+    collections::HashMap,
+    fmt::{Display, Formatter},
+    str::FromStr,
+    time::Duration,
+};
 
 use dynisland_core::{
     abi::{gdk, glib, gtk, log, module::ActivityIdentifier},
@@ -8,27 +13,84 @@ use gtk::{prelude::*, EventController, StateFlags};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    layout::DynamicLayout, priority_order::WidgetOrderManager, window_position::WindowPosition,
+    layout::DynamicLayout,
+    window_position::{WindowPosition, WindowPositionOptional},
 };
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Clone)]
 #[serde(default)]
-pub struct DynamicLayoutConfig {
+pub struct DynamicLayoutConfigMain {
     pub(super) window_position: WindowPosition,
     pub(super) auto_minimize_timeout: i32,
     pub(super) max_activities: u16,
     pub(super) max_active: u16,
     pub(super) reorder_on_add: bool,
     pub(super) reorder_on_reload: bool,
-    pub(super) activity_order: Vec<String>,
+    pub(super) windows: HashMap<String, DynamicLayoutConfig>,
 }
 
+pub const DEFAULT_AUTO_MINIMIZE_TIMEOUT: i32 = 5000;
+
+impl Default for DynamicLayoutConfigMain {
+    fn default() -> Self {
+        let mut map = HashMap::new();
+        map.insert("".to_string(), DynamicLayoutConfig::default());
+        Self {
+            // orientation_horizontal: true,
+            window_position: WindowPosition::default(),
+            auto_minimize_timeout: DEFAULT_AUTO_MINIMIZE_TIMEOUT,
+            max_activities: 3,
+            max_active: 1,
+            reorder_on_add: true,
+            reorder_on_reload: true,
+            windows: map,
+        }
+    }
+}
+
+impl DynamicLayoutConfigMain {
+    pub fn default_conf(&self) -> DynamicLayoutConfig {
+        DynamicLayoutConfig {
+            // orientation_horizontal: self.orientation_horizontal,
+            window_position: self.window_position.clone(),
+            auto_minimize_timeout: self.auto_minimize_timeout,
+            max_activities: self.max_activities,
+            max_active: self.max_active,
+            reorder_on_add: self.reorder_on_add,
+            reorder_on_reload: self.reorder_on_reload,
+            activity_order: Vec::new(),
+        }
+    }
+    pub fn get_for_window(&self, window: &str) -> DynamicLayoutConfig {
+        match self.windows.get(window) {
+            Some(conf) => conf.clone(),
+            None => self.default_conf(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(default)]
+pub struct DynamicLayoutConfig {
+    pub(super) window_position: WindowPosition,
+    #[serde(skip_serializing)]
+    pub(super) auto_minimize_timeout: i32,
+    #[serde(skip_serializing)]
+    pub(super) max_activities: u16,
+    #[serde(skip_serializing)]
+    pub(super) max_active: u16,
+    #[serde(skip_serializing)]
+    pub(super) reorder_on_add: bool,
+    #[serde(skip_serializing)]
+    pub(super) reorder_on_reload: bool,
+    pub(super) activity_order: Vec<ActivityMatch>,
+}
 impl Default for DynamicLayoutConfig {
     fn default() -> Self {
         Self {
             // orientation_horizontal: true,
             window_position: WindowPosition::default(),
-            auto_minimize_timeout: 5000,
+            auto_minimize_timeout: DEFAULT_AUTO_MINIMIZE_TIMEOUT,
             max_activities: 3,
             max_active: 1,
             reorder_on_add: true,
@@ -37,11 +99,146 @@ impl Default for DynamicLayoutConfig {
         }
     }
 }
+#[derive(Debug, Deserialize, Clone)]
+#[serde(default)]
+pub struct DynamicLayoutConfigMainOptional {
+    pub(super) window_position: WindowPosition,
+    pub(super) auto_minimize_timeout: i32,
+    pub(super) max_activities: u16,
+    pub(super) max_active: u16,
+    pub(super) reorder_on_add: bool,
+    pub(super) reorder_on_reload: bool,
+    pub(super) windows: HashMap<String, DynamicLayoutConfigOptional>,
+}
+
+impl Default for DynamicLayoutConfigMainOptional {
+    fn default() -> Self {
+        Self {
+            window_position: WindowPosition::default(),
+            auto_minimize_timeout: DEFAULT_AUTO_MINIMIZE_TIMEOUT,
+            max_activities: 3,
+            max_active: 1,
+            reorder_on_add: true,
+            reorder_on_reload: true,
+            windows: HashMap::new(),
+        }
+    }
+}
+
+impl DynamicLayoutConfigMainOptional {
+    pub fn into_main_config(self) -> DynamicLayoutConfigMain {
+        let mut windows = HashMap::new();
+        for (name, opt_config) in self.windows {
+            let window_pos = match opt_config.window_position {
+                Some(opt_window_pos) => WindowPosition {
+                    layer: opt_window_pos
+                        .layer
+                        .unwrap_or(self.window_position.layer.clone()),
+                    h_anchor: opt_window_pos
+                        .h_anchor
+                        .unwrap_or(self.window_position.h_anchor.clone()),
+                    v_anchor: opt_window_pos
+                        .v_anchor
+                        .unwrap_or(self.window_position.v_anchor.clone()),
+                    margin_x: opt_window_pos
+                        .margin_x
+                        .unwrap_or(self.window_position.margin_x),
+                    margin_y: opt_window_pos
+                        .margin_y
+                        .unwrap_or(self.window_position.margin_y),
+                    exclusive_zone: opt_window_pos
+                        .exclusive_zone
+                        .unwrap_or(self.window_position.exclusive_zone),
+                    monitor: opt_window_pos
+                        .monitor
+                        .unwrap_or(self.window_position.monitor.clone()),
+                    layer_shell: opt_window_pos
+                        .layer_shell
+                        .unwrap_or(self.window_position.layer_shell),
+                },
+                None => self.window_position.clone(),
+            };
+            let conf = DynamicLayoutConfig {
+                window_position: window_pos,
+                auto_minimize_timeout: opt_config
+                    .auto_minimize_timeout
+                    .unwrap_or(self.auto_minimize_timeout),
+                max_activities: opt_config.max_activities.unwrap_or(self.max_activities),
+                max_active: opt_config.max_active.unwrap_or(self.max_active),
+                reorder_on_add: opt_config.reorder_on_add.unwrap_or(self.reorder_on_add),
+                reorder_on_reload: opt_config
+                    .reorder_on_reload
+                    .unwrap_or(self.reorder_on_reload),
+                activity_order: DynamicLayoutConfigOptional::get_order(opt_config.activity_order),
+            };
+            windows.insert(name, conf);
+        }
+        let mut main_conf = DynamicLayoutConfigMain {
+            window_position: self.window_position,
+            auto_minimize_timeout: self.auto_minimize_timeout,
+            max_activities: self.max_activities,
+            max_active: self.max_active,
+            reorder_on_add: self.reorder_on_add,
+            reorder_on_reload: self.reorder_on_reload,
+            windows,
+        };
+        if !main_conf.windows.contains_key("") {
+            let default = main_conf.default_conf();
+            main_conf.windows.insert("".to_string(), default);
+        }
+        main_conf
+    }
+}
+
+#[derive(Debug, Deserialize, Clone, Default)]
+#[serde(default)]
+pub struct DynamicLayoutConfigOptional {
+    pub(super) window_position: Option<WindowPositionOptional>,
+    pub(super) auto_minimize_timeout: Option<i32>,
+    pub(super) max_activities: Option<u16>,
+    pub(super) max_active: Option<u16>,
+    pub(super) reorder_on_add: Option<bool>,
+    pub(super) reorder_on_reload: Option<bool>,
+    pub(super) activity_order: Option<Vec<String>>,
+}
+
+impl DynamicLayoutConfigOptional {
+    pub(super) fn get_order(order: Option<Vec<String>>) -> Vec<ActivityMatch> {
+        let mut matches = Vec::new();
+        if let Some(order) = order {
+            for rule in order.iter() {
+                if let Ok(rule) = ActivityMatch::from_str(rule) {
+                    matches.push(rule);
+                }
+            }
+        }
+        matches
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum ActivityMatch {
     Activity(ActivityIdentifier),
     Module(String),
     Other,
+}
+impl Display for ActivityMatch {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ActivityMatch::Activity(id) => write!(f, "{}@{}", id.activity(), id.module()),
+            ActivityMatch::Module(module) => write!(f, "{}", module),
+            ActivityMatch::Other => write!(f, "*"),
+        }
+    }
+}
+impl Serialize for ActivityMatch {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let disp = self.to_string();
+        serializer.serialize_str(&disp)
+    }
 }
 impl FromStr for ActivityMatch {
     type Err = String;
@@ -70,26 +267,25 @@ impl ActivityMatch {
     }
 }
 
-impl DynamicLayoutConfig {
-    pub(super) fn get_order(&self) -> Vec<ActivityMatch> {
-        let mut matches = Vec::new();
-        for rule in self.activity_order.iter() {
-            if let Ok(rule) = ActivityMatch::from_str(rule) {
-                matches.push(rule);
-            }
-        }
-        matches
-    }
-}
-
-impl<Ord: WidgetOrderManager> DynamicLayout<Ord> {
+impl DynamicLayout {
     pub(crate) fn configure_widget(&self, activity_id: &ActivityIdentifier) {
-        let borrow = self.order_manager.borrow().get_widget_map();
-        let widget_map = borrow.borrow();
-        let widget = widget_map.get(activity_id).unwrap();
+        let (widget, window_name) =
+            Self::find_widget(&self.order_managers.borrow(), activity_id).unwrap();
 
-        widget.set_valign(self.config.window_position.v_anchor.map_gtk());
-        widget.set_halign(self.config.window_position.h_anchor.map_gtk());
+        widget.set_valign(
+            self.config
+                .get_for_window(&window_name)
+                .window_position
+                .v_anchor
+                .map_gtk(),
+        );
+        widget.set_halign(
+            self.config
+                .get_for_window(&window_name)
+                .window_position
+                .h_anchor
+                .map_gtk(),
+        );
 
         // remove old controllers
         let mut controllers_removed = 0;
@@ -131,6 +327,7 @@ impl<Ord: WidgetOrderManager> DynamicLayout<Ord> {
         // Minimal mode to Compact mode controller
         press_gesture.set_button(gdk::BUTTON_PRIMARY);
         let id = activity_id.clone();
+        let window_name1 = window_name.clone();
         press_gesture.connect_released(move |gest, _, x, y| {
             let aw = gest.widget().downcast::<ActivityWidget>().unwrap();
             if x < 0.0
@@ -140,7 +337,7 @@ impl<Ord: WidgetOrderManager> DynamicLayout<Ord> {
             {
                 // cycle by dragging
                 if aw.mode() == ActivityMode::Minimal {
-                    if let Err(err) = send_cycle.send(x > 0.0) {
+                    if let Err(err) = send_cycle.send((window_name1.clone(), x > 0.0)) {
                         log::error!("error activating widget: {err}");
                     }
                 }
@@ -160,9 +357,17 @@ impl<Ord: WidgetOrderManager> DynamicLayout<Ord> {
         // auto minimize (to Compact mode) controller
         let focus_controller = gtk::EventControllerMotion::new();
         focus_controller.set_name(Some("focus_controller"));
-        if self.config.auto_minimize_timeout >= 0 {
+        if self
+            .config
+            .get_for_window(&window_name)
+            .auto_minimize_timeout
+            >= 0
+        {
             let cancel_minimize = self.cancel_minimize.clone();
-            let timeout = self.config.auto_minimize_timeout;
+            let timeout = self
+                .config
+                .get_for_window(&window_name)
+                .auto_minimize_timeout;
             let activity_id = activity_id.clone();
             focus_controller.connect_leave(move |evt| {
                 let aw = evt.widget().downcast::<ActivityWidget>().unwrap();
@@ -195,22 +400,25 @@ impl<Ord: WidgetOrderManager> DynamicLayout<Ord> {
         }
     }
 
-    pub(crate) fn configure_container(&self) {
-        let container = if self.order_manager.borrow().get_container().is_none() {
-            return;
-        } else {
-            let cont = self.order_manager.borrow().get_container();
-            cont.as_ref().unwrap().clone()
-        };
+    pub(crate) fn configure_container(&self, window_name: &str) {
+        let container = self
+            .order_managers
+            .borrow()
+            .get(window_name)
+            .unwrap()
+            .borrow()
+            .get_container()
+            .clone();
         container.set_spacing(0);
         // if self.config.orientation_horizontal {
         container.set_orientation(gtk::Orientation::Horizontal);
         // } else {
         // container.set_orientation(gtk::Orientation::Vertical);
         // }
-        if !self.config.window_position.layer_shell {
-            container.set_halign(self.config.window_position.h_anchor.map_gtk());
-            container.set_valign(self.config.window_position.v_anchor.map_gtk());
+        let config = self.config.get_for_window(&window_name);
+        if !config.window_position.layer_shell {
+            container.set_halign(config.window_position.h_anchor.map_gtk());
+            container.set_valign(config.window_position.v_anchor.map_gtk());
         }
     }
 }

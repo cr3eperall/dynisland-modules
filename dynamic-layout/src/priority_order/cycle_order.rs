@@ -11,13 +11,13 @@ use dynisland_core::{
 use gdk::prelude::ListModelExtManual;
 use gtk::prelude::*;
 
-use super::WidgetOrderManager;
 use crate::config::DynamicLayoutConfig;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct CycleOrder {
+    pub(crate) window: gtk::Window,
+    pub(crate) container: gtk::Box,
     pub(crate) widget_map: Rc<RefCell<HashMap<Rc<ActivityIdentifier>, ActivityWidget>>>,
-    pub(crate) container: Option<gtk::Box>,
     pub(crate) order: VecDeque<Rc<ActivityIdentifier>>,
     pub(crate) active: u16,
     pub(crate) active_offset: u16,
@@ -25,20 +25,22 @@ pub struct CycleOrder {
     pub(crate) max_active: u16,
 }
 impl CycleOrder {
-    pub fn new(config: &DynamicLayoutConfig) -> Self {
+    pub fn new(config: &DynamicLayoutConfig, window: &gtk::Window, container: &gtk::Box) -> Self {
         let max_active = config.max_active.min(config.max_activities);
         CycleOrder {
             max_active,
             max_shown: config.max_activities,
-            ..Default::default()
+            container: container.clone(),
+            window: window.clone(),
+            widget_map: Rc::new(RefCell::new(HashMap::new())),
+            order: VecDeque::new(),
+            active: 0,
+            active_offset: 0,
         }
     }
     fn update_ui(&self) {
         //remove widgets
-        if self.container.is_none()
-            || (self.container.clone().unwrap().first_child().is_none()
-                && self.widget_map.borrow().is_empty())
-        {
+        if self.container.clone().first_child().is_none() && self.widget_map.borrow().is_empty() {
             return;
         }
 
@@ -53,7 +55,6 @@ impl CycleOrder {
         for widget in self
             .container
             .clone()
-            .unwrap()
             .observe_children()
             .iter::<glib::Object>()
             .flatten()
@@ -65,13 +66,13 @@ impl CycleOrder {
             }
         }
         for widget in to_remove {
-            self.container.clone().unwrap().remove(&widget);
+            self.container.clone().remove(&widget);
         }
 
         //add widgets
         for widget in all_widgets {
             if !container_children.contains(&widget) {
-                self.container.clone().unwrap().append(&widget);
+                self.container.clone().append(&widget);
             }
         }
 
@@ -82,7 +83,6 @@ impl CycleOrder {
             let widget = widget_map.get(widget_id.as_ref()).unwrap();
             self.container
                 .clone()
-                .unwrap()
                 .reorder_child_after(widget, last_widget);
 
             if self.is_active(widget_id) {
@@ -101,8 +101,8 @@ impl CycleOrder {
     }
 }
 
-impl WidgetOrderManager for CycleOrder {
-    fn is_active(&self, id: &ActivityIdentifier) -> bool {
+impl CycleOrder {
+    pub fn is_active(&self, id: &ActivityIdentifier) -> bool {
         if let Some(pos) = self.order.iter().position(|t| t.as_ref() == id) {
             (pos as u16) >= self.active_offset && (pos as u16) < self.active + self.active_offset
         } else {
@@ -110,7 +110,7 @@ impl WidgetOrderManager for CycleOrder {
         }
     }
 
-    fn is_shown(&self, id: &ActivityIdentifier) -> bool {
+    pub fn is_shown(&self, id: &ActivityIdentifier) -> bool {
         if let Some(pos) = self.order.iter().position(|t| t.as_ref() == id) {
             (pos as u16) < self.max_shown
         } else {
@@ -118,23 +118,22 @@ impl WidgetOrderManager for CycleOrder {
         }
     }
 
-    fn set_container(&mut self, container: gtk::Box) {
-        self.container = Some(container);
-    }
-
-    fn get_container(&self) -> Option<gtk::Box> {
+    pub fn get_container(&self) -> gtk::Box {
         self.container.clone()
     }
 
-    fn get_widget_map(&self) -> Rc<RefCell<HashMap<Rc<ActivityIdentifier>, ActivityWidget>>> {
+    pub fn get_widget_map(&self) -> Rc<RefCell<HashMap<Rc<ActivityIdentifier>, ActivityWidget>>> {
         self.widget_map.clone()
     }
+    pub fn get_window(&self) -> gtk::Window {
+        self.window.clone()
+    }
 
-    fn list_activities(&self) -> Vec<Rc<ActivityIdentifier>> {
+    pub fn list_activities(&self) -> Vec<Rc<ActivityIdentifier>> {
         self.order.iter().cloned().collect()
     }
 
-    fn update_order(&mut self, order: Vec<&ActivityIdentifier>) {
+    pub fn update_order(&mut self, order: Vec<&ActivityIdentifier>) {
         if self.order.len() != order.len() {
             return;
         }
@@ -159,7 +158,7 @@ impl WidgetOrderManager for CycleOrder {
         self.update_ui();
     }
 
-    fn update_config(&mut self, max_active: u16, max_shown: u16) {
+    pub fn update_config(&mut self, max_active: u16, max_shown: u16) {
         let max_shown = max_shown.max(max_active);
         self.max_active = max_active;
         self.max_shown = max_shown;
@@ -168,7 +167,7 @@ impl WidgetOrderManager for CycleOrder {
         self.update_ui();
     }
 
-    fn add(&mut self, id: &ActivityIdentifier, widget: ActivityWidget) {
+    pub fn add(&mut self, id: &ActivityIdentifier, widget: ActivityWidget) {
         if self.widget_map.borrow().contains_key(id) {
             return;
         }
@@ -180,7 +179,7 @@ impl WidgetOrderManager for CycleOrder {
         self.update_ui();
     }
 
-    fn remove(&mut self, id: &ActivityIdentifier) {
+    pub fn remove(&mut self, id: &ActivityIdentifier) {
         let postion = self.order.iter().position(|tid| tid.as_ref() == id);
         if postion.is_none() {
             return;
@@ -193,7 +192,7 @@ impl WidgetOrderManager for CycleOrder {
         self.update_ui();
     }
 
-    fn activate(&mut self, id: &ActivityIdentifier) {
+    pub fn activate(&mut self, id: &ActivityIdentifier) {
         if self.is_active(id) {
             return;
         }
@@ -232,7 +231,7 @@ impl WidgetOrderManager for CycleOrder {
         self.update_ui();
     }
 
-    fn deactivate(&mut self, id: &ActivityIdentifier) {
+    pub fn deactivate(&mut self, id: &ActivityIdentifier) {
         if !self.is_active(id) {
             return;
         }
@@ -260,14 +259,14 @@ impl WidgetOrderManager for CycleOrder {
         self.update_ui();
     }
 
-    fn next(&mut self) {
+    pub fn next(&mut self) {
         if let Some(back) = self.order.pop_back() {
             self.order.push_front(back);
             self.update_ui();
         }
     }
 
-    fn previous(&mut self) {
+    pub fn previous(&mut self) {
         if let Some(front) = self.order.pop_front() {
             self.order.push_back(front);
             self.update_ui();
