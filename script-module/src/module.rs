@@ -29,7 +29,7 @@ use tokio::{
 };
 
 use crate::{
-    config::{ScriptConfig, ScriptConfigMain, ScriptConfigMainOptional},
+    config::{DeScriptConfigMain, ScriptConfig, ScriptConfigMain},
     utils, widget, NAME,
 };
 
@@ -81,7 +81,7 @@ impl SabiModule for ScriptModule {
     fn update_config(&mut self, config: RString) -> RResult<(), RBoxError> {
         log::trace!("config: {}", config);
 
-        match serde_json::from_str::<ScriptConfigMainOptional>(&config) {
+        match serde_json::from_str::<DeScriptConfigMain>(&config) {
             Ok(conf) => {
                 self.config = conf.into_main_config();
             }

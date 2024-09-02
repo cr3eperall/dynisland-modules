@@ -28,7 +28,7 @@ use log::Level;
 use ron::ser::PrettyConfig;
 
 use crate::{
-    config::{ClockConfigMain, ClockConfigMainOptional},
+    config::{ClockConfigMain, DeClockConfigMain},
     widget::{clock::Clock, compact::Compact, get_activity},
     NAME,
 };
@@ -80,10 +80,9 @@ impl SabiModule for ClockModule {
 
     fn update_config(&mut self, config: RString) -> RResult<(), RBoxError> {
         log::trace!("config: {}", config);
-        let mut opt_conf: ClockConfigMainOptional = ClockConfigMainOptional::default();
-        match serde_json::from_str(&config) {
+        match serde_json::from_str::<DeClockConfigMain>(&config) {
             Ok(conf) => {
-                opt_conf = conf;
+                self.config = conf.into_main_config();
             }
             Err(err) => {
                 log::warn!(
@@ -92,7 +91,6 @@ impl SabiModule for ClockModule {
                 );
             }
         }
-        self.config = opt_conf.into_main_config();
         log::debug!("current config: {:#?}", self.config);
         ROk(())
     }

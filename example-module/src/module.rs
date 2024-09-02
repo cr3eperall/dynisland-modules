@@ -24,7 +24,7 @@ use ron::ser::PrettyConfig;
 
 use super::NAME;
 use crate::{
-    config::{ExampleConfigMain, ExampleConfigMainOptional},
+    config::{DeExampleConfigMain, ExampleConfigMain},
     widget,
 };
 
@@ -74,10 +74,9 @@ impl SabiModule for ExampleModule {
     fn update_config(&mut self, config: RString) -> RResult<(), RBoxError> {
         log::trace!("config: {}", config);
 
-        let mut opt_conf = ExampleConfigMainOptional::default();
-        match serde_json::from_str(&config) {
+        match serde_json::from_str::<DeExampleConfigMain>(&config) {
             Ok(conf) => {
-                opt_conf = conf;
+                self.config = conf.into_main_config();
             }
             Err(err) => {
                 log::error!(
@@ -86,7 +85,6 @@ impl SabiModule for ExampleModule {
                 );
             }
         }
-        self.config = opt_conf.into_main_config();
         log::debug!("current config: {:#?}", self.config);
         ROk(())
     }

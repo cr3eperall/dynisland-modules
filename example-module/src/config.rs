@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
+// TODO cleanup
+
 #[derive(Debug, Serialize, Clone)]
 #[serde(default)]
 pub struct ExampleConfigMain {
@@ -63,15 +65,15 @@ impl Default for ExampleConfig {
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct ExampleConfigMainOptional {
+pub struct DeExampleConfigMain {
     int: i32,
     string: String,
     vec: Vec<String>,
     duration: u64,
-    windows: HashMap<String, Vec<ExampleConfigOptional>>,
+    windows: HashMap<String, Vec<DeExampleConfig>>,
 }
 
-impl Default for ExampleConfigMainOptional {
+impl Default for DeExampleConfigMain {
     fn default() -> Self {
         let map = HashMap::new();
         Self {
@@ -84,7 +86,7 @@ impl Default for ExampleConfigMainOptional {
     }
 }
 
-impl ExampleConfigMainOptional {
+impl DeExampleConfigMain {
     pub fn into_main_config(self) -> ExampleConfigMain {
         let mut windows = HashMap::new();
         for (window_name, opt_conf_vec) in self.windows {
@@ -123,7 +125,7 @@ impl ExampleConfigMainOptional {
 
 #[derive(Debug, Deserialize, Clone, Default)]
 #[serde(default)]
-pub struct ExampleConfigOptional {
+pub struct DeExampleConfig {
     number_of_widgets: Option<u32>,
     int: Option<i32>,
     string: Option<String>,

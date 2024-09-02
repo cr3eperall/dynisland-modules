@@ -79,7 +79,7 @@ impl Default for WindowPosition {
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[serde(default)]
-pub struct WindowPositionOptional {
+pub struct DeWindowPosition {
     pub(crate) layer: Option<Layer>,
     pub(crate) h_anchor: Option<Alignment>,
     pub(crate) v_anchor: Option<Alignment>,

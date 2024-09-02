@@ -32,8 +32,8 @@ use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use crate::{
     config::{
-        self, ActivityMatch, DynamicLayoutConfig, DynamicLayoutConfigMain,
-        DynamicLayoutConfigMainOptional,
+        self, ActivityMatch, DeDynamicLayoutConfigMain, DynamicLayoutConfig,
+        DynamicLayoutConfigMain,
     },
     priority_order::cycle_order::CycleOrder,
 };
@@ -89,10 +89,10 @@ impl SabiLayoutManager for DynamicLayout {
 
     fn update_config(&mut self, config: RString) -> RResult<(), RBoxError> {
         log::trace!("config: {:#?}", config);
-        let mut conf_opt = DynamicLayoutConfigMainOptional::default();
-        match serde_json::from_str(&config) {
+
+        match serde_json::from_str::<DeDynamicLayoutConfigMain>(&config) {
             Ok(conf) => {
-                conf_opt = conf;
+                self.config = conf.into_main_config();
             }
             Err(err) => {
                 log::error!(
@@ -101,7 +101,6 @@ impl SabiLayoutManager for DynamicLayout {
                 );
             }
         }
-        self.config = conf_opt.into_main_config();
         log::debug!("current config: {:#?}", self.config);
 
         if self.app.windows().first().is_some() {

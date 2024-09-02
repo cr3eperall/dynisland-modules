@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use dynisland_core::abi::log;
 use serde::{Deserialize, Serialize};
 
+// TODO cleanup
+
 #[derive(Debug, Serialize, Clone)]
 #[serde(default)]
 pub struct ScriptConfigMain {
@@ -74,15 +76,15 @@ impl Default for ScriptConfig {
 
 #[derive(Debug, Deserialize, Clone)]
 #[serde(default)]
-pub struct ScriptConfigMainOptional {
+pub struct DeScriptConfigMain {
     pub(crate) scrolling: bool,
     pub(crate) scrolling_speed: f32,
     pub(crate) max_width: i32,
     pub(crate) minimal_image: String,
-    windows: HashMap<String, Vec<ScriptConfigOptional>>,
+    windows: HashMap<String, Vec<DeScriptConfig>>,
 }
 
-impl Default for ScriptConfigMainOptional {
+impl Default for DeScriptConfigMain {
     fn default() -> Self {
         let map = HashMap::new();
         Self {
@@ -95,7 +97,7 @@ impl Default for ScriptConfigMainOptional {
     }
 }
 
-impl ScriptConfigMainOptional {
+impl DeScriptConfigMain {
     pub fn into_main_config(self) -> ScriptConfigMain {
         let mut windows = HashMap::new();
         for (name, opt_vec_conf) in self.windows {
@@ -113,7 +115,7 @@ impl ScriptConfigMainOptional {
             windows.insert(name, vec_conf);
         }
         if windows.is_empty() {
-            log::warn!("No window found for ScriptModule, see wiki for more information or update your config file with `dynisland default-config`");
+            log::warn!("No window found for ScriptModule, see wiki for more information or update your config file from `dynisland default-config`");
             let script = ScriptConfig {
                 exec: "echo \"update your config file: see wiki\"".to_string(),
                 minimal_image: self.minimal_image.clone(),
@@ -134,7 +136,7 @@ impl ScriptConfigMainOptional {
 }
 
 #[derive(Debug, Deserialize, Clone, Default)]
-pub struct ScriptConfigOptional {
+pub struct DeScriptConfig {
     #[serde(default)]
     scrolling: Option<bool>,
     #[serde(default)]

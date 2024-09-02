@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
+// TODO cleanup
+
 #[derive(Debug, Serialize, Clone)]
 #[serde(default)]
 pub struct ClockConfigMain {
@@ -70,16 +72,16 @@ impl Default for ClockConfig {
 
 #[derive(Debug, Deserialize, Clone)]
 #[serde(default)]
-pub struct ClockConfigMainOptional {
+pub struct DeClockConfigMain {
     format_24h: bool,
     hour_hand_color: String,
     minute_hand_color: String,
     tick_color: String,
     circle_color: String,
-    windows: HashMap<String, Vec<ClockConfigOptional>>,
+    windows: HashMap<String, Vec<DeClockConfig>>,
 }
 
-impl Default for ClockConfigMainOptional {
+impl Default for DeClockConfigMain {
     fn default() -> Self {
         Self {
             format_24h: true,
@@ -91,7 +93,7 @@ impl Default for ClockConfigMainOptional {
         }
     }
 }
-impl ClockConfigMainOptional {
+impl DeClockConfigMain {
     pub fn into_main_config(self) -> ClockConfigMain {
         let mut windows = HashMap::new();
         for (window_name, opt_conf_vec) in self.windows {
@@ -137,7 +139,7 @@ impl ClockConfigMainOptional {
 
 #[derive(Debug, Deserialize, Clone, Default)]
 #[serde(default)]
-pub struct ClockConfigOptional {
+pub struct DeClockConfig {
     format_24h: Option<bool>,
     hour_hand_color: Option<String>,
     minute_hand_color: Option<String>,

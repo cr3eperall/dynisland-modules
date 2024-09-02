@@ -14,8 +14,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     layout::DynamicLayout,
-    window_position::{WindowPosition, WindowPositionOptional},
+    window_position::{DeWindowPosition, WindowPosition},
 };
+
+// TODO: cleanup
 
 #[derive(Debug, Serialize, Clone)]
 #[serde(default)]
@@ -72,6 +74,7 @@ impl DynamicLayoutConfigMain {
 #[derive(Debug, Serialize, Clone)]
 #[serde(default)]
 pub struct DynamicLayoutConfig {
+    #[serde(skip_serializing)]
     pub(super) window_position: WindowPosition,
     #[serde(skip_serializing)]
     pub(super) auto_minimize_timeout: i32,
@@ -101,17 +104,17 @@ impl Default for DynamicLayoutConfig {
 }
 #[derive(Debug, Deserialize, Clone)]
 #[serde(default)]
-pub struct DynamicLayoutConfigMainOptional {
+pub struct DeDynamicLayoutConfigMain {
     pub(super) window_position: WindowPosition,
     pub(super) auto_minimize_timeout: i32,
     pub(super) max_activities: u16,
     pub(super) max_active: u16,
     pub(super) reorder_on_add: bool,
     pub(super) reorder_on_reload: bool,
-    pub(super) windows: HashMap<String, DynamicLayoutConfigOptional>,
+    pub(super) windows: HashMap<String, DeDynamicLayoutConfig>,
 }
 
-impl Default for DynamicLayoutConfigMainOptional {
+impl Default for DeDynamicLayoutConfigMain {
     fn default() -> Self {
         Self {
             window_position: WindowPosition::default(),
@@ -125,7 +128,7 @@ impl Default for DynamicLayoutConfigMainOptional {
     }
 }
 
-impl DynamicLayoutConfigMainOptional {
+impl DeDynamicLayoutConfigMain {
     pub fn into_main_config(self) -> DynamicLayoutConfigMain {
         let mut windows = HashMap::new();
         for (name, opt_config) in self.windows {
@@ -169,7 +172,7 @@ impl DynamicLayoutConfigMainOptional {
                 reorder_on_reload: opt_config
                     .reorder_on_reload
                     .unwrap_or(self.reorder_on_reload),
-                activity_order: DynamicLayoutConfigOptional::get_order(opt_config.activity_order),
+                activity_order: DeDynamicLayoutConfig::get_order(opt_config.activity_order),
             };
             windows.insert(name, conf);
         }
@@ -192,8 +195,8 @@ impl DynamicLayoutConfigMainOptional {
 
 #[derive(Debug, Deserialize, Clone, Default)]
 #[serde(default)]
-pub struct DynamicLayoutConfigOptional {
-    pub(super) window_position: Option<WindowPositionOptional>,
+pub struct DeDynamicLayoutConfig {
+    pub(super) window_position: Option<DeWindowPosition>,
     pub(super) auto_minimize_timeout: Option<i32>,
     pub(super) max_activities: Option<u16>,
     pub(super) max_active: Option<u16>,
@@ -202,7 +205,7 @@ pub struct DynamicLayoutConfigOptional {
     pub(super) activity_order: Option<Vec<String>>,
 }
 
-impl DynamicLayoutConfigOptional {
+impl DeDynamicLayoutConfig {
     pub(super) fn get_order(order: Option<Vec<String>>) -> Vec<ActivityMatch> {
         let mut matches = Vec::new();
         if let Some(order) = order {
