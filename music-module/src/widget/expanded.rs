@@ -23,7 +23,7 @@ use gtk::{
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::{visualizer::Visualizer, UIAction};
-use crate::module::MusicConfig;
+use crate::config::MusicConfig;
 
 glib::wrapper! {
     pub struct Expanded(ObjectSubclass<ExpandedPriv>)

@@ -20,7 +20,7 @@ use gtk::{prelude::*, GestureClick};
 use minimal::Minimal;
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::module::MusicConfig;
+use crate::config::MusicConfig;
 
 pub enum UIAction {
     Shuffle,

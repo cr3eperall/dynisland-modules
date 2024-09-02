@@ -3,6 +3,7 @@ use abi_stable::export_root_module;
 use abi_stable::prefix_type::PrefixTypeTrait;
 use dynisland_core::abi::module::{ModuleBuilder, ModuleBuilderRef};
 
+pub mod config;
 pub mod module;
 pub mod player_info;
 pub mod utils;

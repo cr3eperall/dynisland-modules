@@ -32,7 +32,6 @@ use env_logger::Env;
 use log::Level;
 use mpris::{DBusError, TrackID};
 use ron::ser::PrettyConfig;
-use serde::{Deserialize, Serialize};
 use tokio::{
     io::{AsyncBufReadExt, BufReader},
     process::Command,
@@ -43,6 +42,7 @@ use tokio::{
 };
 
 use crate::{
+    config::MusicConfig,
     player_info::MprisPlayer,
     utils,
     widget::{self, visualizer, UIAction, UIPlaybackStatus},
@@ -50,26 +50,6 @@ use crate::{
 };
 
 const CHECK_DELAY: u64 = 5000;
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(default)]
-pub struct MusicConfig {
-    pub preferred_player: String,
-    pub default_album_art_url: String,
-    pub scrolling_label_speed: f32,
-    pub cava_visualizer_script: String,
-}
-#[allow(clippy::derivable_impls)]
-impl Default for MusicConfig {
-    fn default() -> Self {
-        Self {
-            preferred_player: String::from(""),
-            default_album_art_url: String::from(""),
-            scrolling_label_speed: 30.0,
-            cava_visualizer_script: String::from("echo 0,0,0,0,0,0"),
-        }
-    }
-}
 
 pub struct MusicModule {
     base_module: BaseModule<MusicModule>,
@@ -103,7 +83,7 @@ pub fn new(app_send: RSender<UIServerCommand>) -> RResult<ModuleType, RBoxError>
                 match restart_rx.blocking_recv() {
                     Some(_) => {
                         if last_attempt.elapsed() < Duration::from_millis(1000) {
-                            log::debug!("no player found: sleeping for {} millis", CHECK_DELAY);
+                            log::trace!("no player found: sleeping for {} millis", CHECK_DELAY);
                             thread::sleep(Duration::from_millis(CHECK_DELAY));
                         }
                         last_attempt = Instant::now();
@@ -162,7 +142,10 @@ impl SabiModule for MusicModule {
                 self.config = conf;
             }
             Err(err) => {
-                log::error!("Failed to parse config into struct: {:#?}", err);
+                log::error!(
+                    "Failed to parse config into struct, using default: {:#?}",
+                    err
+                );
                 return RErr(RBoxError::new(err));
             }
         }
@@ -532,10 +515,15 @@ async fn set_album_art(
 
 // TODO optimize
 fn wait_for_new_player_task(module: &MusicModule, current_player: MprisPlayer) {
-    let player_bus_name = if !module.config.preferred_player.is_empty(){
+    let player_bus_name = if !module.config.preferred_player.is_empty() {
         module.config.preferred_player.clone()
-    } else{
-        current_player.get_player().lock().unwrap().bus_name_player_name_part().to_string()
+    } else {
+        current_player
+            .get_player()
+            .lock()
+            .unwrap()
+            .bus_name_player_name_part()
+            .to_string()
     };
     let preferred_player = module.config.preferred_player.clone();
     let find_new_player_channel = module.find_new_player.clone();

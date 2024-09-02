@@ -20,7 +20,7 @@ use gtk::{
 };
 
 use super::visualizer::Visualizer;
-use crate::module::MusicConfig;
+use crate::config::MusicConfig;
 
 glib::wrapper! {
     pub struct Compact(ObjectSubclass<CompactPriv>)

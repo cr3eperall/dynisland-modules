@@ -462,7 +462,7 @@ impl MprisPlayer {
                 return Ok(player);
             }
         }
-        log::debug!("could not find player {}, using active", name);
+        log::trace!("could not find player {}, using active", name);
         Ok(mpris::PlayerFinder::new()
             .expect("Could not connect to D-Bus")
             .find_active()?)

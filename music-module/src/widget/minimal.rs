@@ -16,7 +16,7 @@ use gtk::{
     BinLayout, CompositeTemplate, TemplateChild,
 };
 
-use crate::module::MusicConfig;
+use crate::config::MusicConfig;
 
 glib::wrapper! {
     pub struct Minimal(ObjectSubclass<MinimalPriv>)
