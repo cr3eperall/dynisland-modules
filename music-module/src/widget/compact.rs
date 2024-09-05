@@ -5,7 +5,7 @@ use dynisland_core::{
 use glib::{
     subclass::{
         object::{ObjectImpl, ObjectImplExt},
-        types::{ObjectSubclass, ObjectSubclassExt, ObjectSubclassIsExt},
+        types::{ObjectSubclass, ObjectSubclassExt},
         InitializingObject,
     },
     Object,
@@ -20,7 +20,6 @@ use gtk::{
 };
 
 use super::visualizer::Visualizer;
-use crate::config::MusicConfig;
 
 glib::wrapper! {
     pub struct Compact(ObjectSubclass<CompactPriv>)
@@ -69,12 +68,7 @@ impl ObjectImpl for CompactPriv {
 impl WidgetImpl for CompactPriv {}
 
 impl Compact {
-    pub fn new(config: &MusicConfig) -> Self {
-        let this: Self = Object::builder().build();
-        this.imp()
-            .image
-            .set_file(Some(&config.default_album_art_url));
-
-        this
+    pub fn new() -> Self {
+        Object::builder().build()
     }
 }

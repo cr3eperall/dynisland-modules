@@ -1,4 +1,4 @@
-use std::{cell::RefCell, time::Duration};
+use std::{cell::RefCell, sync::Arc, time::Duration};
 
 use dynisland_core::{
     abi::{gdk, glib, gtk},
@@ -20,17 +20,19 @@ use gtk::{
     },
     BinLayout, CompositeTemplate, GestureClick, TemplateChild,
 };
-use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::{
+    mpsc::{UnboundedReceiver, UnboundedSender},
+    Mutex,
+};
 
 use super::{visualizer::Visualizer, UIAction};
-use crate::config::MusicConfig;
 
 glib::wrapper! {
     pub struct Expanded(ObjectSubclass<ExpandedPriv>)
     @extends gtk::Widget;
 }
 
-#[derive(CompositeTemplate, Default)]
+#[derive(CompositeTemplate)]
 #[template(resource = "/com/github/cr3eperall/dynislandModules/musicModule/expanded.ui")]
 pub struct ExpandedPriv {
     #[template_child]
@@ -58,7 +60,29 @@ pub struct ExpandedPriv {
     #[template_child]
     pub repeat: TemplateChild<gtk::Button>,
 
-    pub action_tx: RefCell<Option<UnboundedSender<UIAction>>>,
+    pub action_tx: RefCell<UnboundedSender<UIAction>>,
+    pub action_rx: Arc<Mutex<UnboundedReceiver<UIAction>>>,
+}
+
+impl Default for ExpandedPriv {
+    fn default() -> Self {
+        let (action_tx, action_rx) = tokio::sync::mpsc::unbounded_channel();
+        ExpandedPriv {
+            action_tx: RefCell::new(action_tx),
+            action_rx: Arc::new(Mutex::new(action_rx)),
+            image: Default::default(),
+            song_name: Default::default(),
+            artist_name: Default::default(),
+            elapsed_time: Default::default(),
+            progress_bar: Default::default(),
+            remaining_time: Default::default(),
+            shuffle: Default::default(),
+            previous: Default::default(),
+            play_pause: Default::default(),
+            next: Default::default(),
+            repeat: Default::default(),
+        }
+    }
 }
 
 #[glib::object_subclass]
@@ -86,8 +110,6 @@ impl Expanded {
         self.imp()
             .action_tx
             .borrow()
-            .as_ref()
-            .unwrap()
             .send(UIAction::Shuffle)
             .unwrap();
     }
@@ -96,8 +118,6 @@ impl Expanded {
         self.imp()
             .action_tx
             .borrow()
-            .as_ref()
-            .unwrap()
             .send(UIAction::Previous)
             .unwrap();
     }
@@ -106,30 +126,16 @@ impl Expanded {
         self.imp()
             .action_tx
             .borrow()
-            .as_ref()
-            .unwrap()
             .send(UIAction::PlayPause)
             .unwrap();
     }
     #[template_callback]
     fn handle_next(&self, _button: &gtk::Button) {
-        self.imp()
-            .action_tx
-            .borrow()
-            .as_ref()
-            .unwrap()
-            .send(UIAction::Next)
-            .unwrap();
+        self.imp().action_tx.borrow().send(UIAction::Next).unwrap();
     }
     #[template_callback]
     fn handle_loop(&self, _button: &gtk::Button) {
-        self.imp()
-            .action_tx
-            .borrow()
-            .as_ref()
-            .unwrap()
-            .send(UIAction::Loop)
-            .unwrap();
+        self.imp().action_tx.borrow().send(UIAction::Loop).unwrap();
     }
 }
 
@@ -148,14 +154,13 @@ impl ObjectImpl for ExpandedPriv {
 impl WidgetImpl for ExpandedPriv {}
 
 impl Expanded {
-    pub fn new(config: &MusicConfig, action_tx: UnboundedSender<UIAction>) -> Self {
+    pub fn new() -> Self {
         let this: Self = Object::builder().build();
         let imp = this.imp();
-        imp.action_tx.replace(Some(action_tx.clone()));
-        imp.image.set_file(Some(&config.default_album_art_url));
         imp.progress_bar.set_range(0.0, 1.0);
         imp.progress_bar.set_increments(0.0035, 0.1);
 
+        let action_tx = imp.action_tx.borrow().clone();
         let release_gesture = GestureClick::new();
         release_gesture.set_button(gdk::BUTTON_PRIMARY);
         release_gesture.connect_unpaired_release(move |gest, _, _, _, _| {

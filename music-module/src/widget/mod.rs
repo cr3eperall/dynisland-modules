@@ -18,9 +18,6 @@ use gdk::{gdk_pixbuf::Pixbuf, gio::MemoryInputStream};
 use glib::{subclass::types::ObjectSubclassIsExt, Bytes};
 use gtk::{prelude::*, GestureClick};
 use minimal::Minimal;
-use tokio::sync::mpsc::UnboundedSender;
-
-use crate::config::MusicConfig;
 
 pub enum UIAction {
     Shuffle,
@@ -60,18 +57,24 @@ pub fn get_activity(
     prop_send: tokio::sync::mpsc::UnboundedSender<PropertyUpdate>,
     module: &str,
     name: &str,
-    config: &MusicConfig,
-    action_tx: UnboundedSender<UIAction>,
+    window: &str,
+    idx: usize,
 ) -> DynamicActivity {
-    let mut activity = DynamicActivity::new(prop_send, module, name);
+    let mut activity = DynamicActivity::new_with_metadata(
+        prop_send,
+        module,
+        &(name.to_string() + "-" + &idx.to_string()),
+        Some(window),
+        Some(&("instance=".to_string() + &idx.to_string())),
+    );
 
-    //create activity widget
     let activity_widget = activity.get_activity_widget();
+    activity_widget.add_css_class(name);
 
     //get widgets
-    let minimal = Minimal::new(config);
-    let compact = Compact::new(config);
-    let expanded = Expanded::new(config, action_tx);
+    let minimal = Minimal::new();
+    let compact = Compact::new();
+    let expanded = Expanded::new();
 
     //load widgets in the activity widget
     activity_widget.set_minimal_mode_widget(minimal.clone());
@@ -292,10 +295,12 @@ fn setup_visualizer_gradient_prop(activity: &mut DynamicActivity) {
         .add_dynamic_property("visualizer-gradient", [[[0_u8; 3]; 6]; 3])
         .unwrap();
     {
+        let css_class = activity.get_activity_widget().name();
         activity
             .subscribe_to_property("visualizer-gradient", move |new_value| {
                 let data = cast_dyn_any!(new_value, [[[u8; 3]; 6]; 3]).unwrap();
-                gradient_css_provider.load_from_string(&visualizer::get_gradient_css(data))
+                gradient_css_provider
+                    .load_from_string(&visualizer::get_gradient_css(&css_class, data))
             })
             .unwrap();
     }
@@ -313,10 +318,12 @@ fn setup_visualizer_data_prop(activity: &mut DynamicActivity, activity_widget: &
         .unwrap();
     {
         let aw = activity_widget.clone();
+        let css_name = aw.name();
         activity
             .subscribe_to_property("visualizer-data", move |new_value| {
                 let data = cast_dyn_any!(new_value, [u8; 6]).unwrap();
                 bar_height_css_provider.load_from_string(&visualizer::get_bar_css(
+                    &css_name,
                     data,
                     32,
                     30,

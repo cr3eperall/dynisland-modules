@@ -2,7 +2,7 @@ use dynisland_core::abi::{glib, gtk};
 use glib::{
     subclass::{
         object::{ObjectImpl, ObjectImplExt},
-        types::{ObjectSubclass, ObjectSubclassExt, ObjectSubclassIsExt},
+        types::{ObjectSubclass, ObjectSubclassExt},
         InitializingObject,
     },
     Object,
@@ -15,8 +15,6 @@ use gtk::{
     },
     BinLayout, CompositeTemplate, TemplateChild,
 };
-
-use crate::config::MusicConfig;
 
 glib::wrapper! {
     pub struct Minimal(ObjectSubclass<MinimalPriv>)
@@ -61,12 +59,7 @@ impl ObjectImpl for MinimalPriv {
 impl WidgetImpl for MinimalPriv {}
 
 impl Minimal {
-    pub fn new(config: &MusicConfig) -> Self {
-        let this: Self = Object::builder().build();
-        this.imp()
-            .image
-            .set_file(Some(&config.default_album_art_url));
-
-        this
+    pub fn new() -> Self {
+        Object::builder().build()
     }
 }

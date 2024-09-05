@@ -142,6 +142,7 @@ pub fn parse_input(line: &str) -> [u8; 6] {
 }
 
 pub fn get_bar_css(
+    css_class: &str,
     cava_data: &[u8; 6],
     pre_max_height: u8,
     post_max_height_compact: u8,
@@ -166,29 +167,29 @@ pub fn get_bar_css(
     );
     format!(
         r"
-        .music-activity .mode-{mode} .visualizer .bar-0{{
+        .{css_class} .mode-{mode} .visualizer .bar-0{{
             min-height: {d0}px;
         }}
-        .music-activity .mode-{mode} .visualizer .bar-1{{
+        .{css_class} .mode-{mode} .visualizer .bar-1{{
             min-height: {d1}px;
         }}
-        .music-activity .mode-{mode} .visualizer .bar-2{{
+        .{css_class} .mode-{mode} .visualizer .bar-2{{
             min-height: {d2}px;
         }}
-        .music-activity .mode-{mode} .visualizer .bar-3{{
+        .{css_class} .mode-{mode} .visualizer .bar-3{{
             min-height: {d3}px;
         }}
-        .music-activity .mode-{mode} .visualizer .bar-4{{
+        .{css_class} .mode-{mode} .visualizer .bar-4{{
             min-height: {d4}px;
         }}
-        .music-activity .mode-{mode} .visualizer .bar-5{{
+        .{css_class} .mode-{mode} .visualizer .bar-5{{
             min-height: {d5}px;
         }}
     "
     )
 }
 
-pub fn get_gradient_css(gradient_mat: &[[[u8; 3]; 6]; 3]) -> String {
+pub fn get_gradient_css(css_class: &str, gradient_mat: &[[[u8; 3]; 6]; 3]) -> String {
     let (c00, c01, c02) = (
         format_rgb_color(gradient_mat[0][0]),
         format_rgb_color(gradient_mat[1][0]),
@@ -221,22 +222,22 @@ pub fn get_gradient_css(gradient_mat: &[[[u8; 3]; 6]; 3]) -> String {
     );
     format!(
         r"
-        .music-activity .visualizer .bar-0{{
+        .{css_class} .visualizer .bar-0{{
             background-image: linear-gradient(to bottom, {c00}, {c01}, {c02});
         }}
-        .music-activity .visualizer .bar-1{{
+        .{css_class} .visualizer .bar-1{{
             background-image: linear-gradient(to bottom, {c10}, {c11}, {c12});
         }}
-        .music-activity .visualizer .bar-2{{
+        .{css_class} .visualizer .bar-2{{
             background-image: linear-gradient(to bottom, {c20}, {c21}, {c22});
         }}
-        .music-activity .visualizer .bar-3{{
+        .{css_class} .visualizer .bar-3{{
             background-image: linear-gradient(to bottom, {c30}, {c31}, {c32});
         }}
-        .music-activity .visualizer .bar-4{{
+        .{css_class} .visualizer .bar-4{{
             background-image: linear-gradient(to bottom, {c40}, {c41}, {c42});
         }}
-        .music-activity .visualizer .bar-5{{
+        .{css_class} .visualizer .bar-5{{
             background-image: linear-gradient(to bottom, {c50}, {c51}, {c52});
         }}
     "

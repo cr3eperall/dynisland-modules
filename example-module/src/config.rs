@@ -72,7 +72,7 @@ pub struct DeExampleConfigMain {
     vec: Vec<String>,
     duration: u64,
     windows: HashMap<String, Vec<DeExampleConfig>>,
-}  
+}
 
 impl Default for DeExampleConfigMain {
     fn default() -> Self {

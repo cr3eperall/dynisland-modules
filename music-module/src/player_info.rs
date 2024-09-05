@@ -104,6 +104,7 @@ impl MprisProgress {
     }
 }
 
+#[derive(Debug)]
 pub struct MprisPlayer {
     player: Rc<std::sync::Mutex<mpris::Player>>,
 }
@@ -124,8 +125,16 @@ impl MprisPlayer {
 }
 
 impl MprisPlayer {
-    pub fn try_clone(&self) -> Option<Self> {
+    pub fn clone_player(&self) -> Option<Self> {
         Self::new(self.player.lock().unwrap().bus_name_player_name_part()).ok()
+    }
+}
+
+impl Clone for MprisPlayer {
+    fn clone(&self) -> Self {
+        MprisPlayer {
+            player: self.player.clone(),
+        }
     }
 }
 
