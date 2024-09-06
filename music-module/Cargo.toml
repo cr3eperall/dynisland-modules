@@ -1,6 +1,6 @@
 [package]
 name = "dynisland_music_module"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["cr3eperall"]
 description = "Music module for dynisland"
 repository = "https://github.com/cr3eperall/dynisland-modules"
