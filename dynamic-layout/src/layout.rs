@@ -156,16 +156,22 @@ impl SabiLayoutManager for DynamicLayout {
         };
 
         widget.set_visible(false);
+        widget.add_css_class("being-added");
+        let old_mode = widget.mode();
         let window_name = self.get_window_name(activity_id);
         let order_manager = self.order_managers.borrow();
         let ord = order_manager.get(window_name.as_str()).unwrap();
-        ord.borrow_mut().add(activity_id, widget);
+        ord.borrow_mut().add(activity_id, widget.clone());
         let config = self.config.get_for_window(window_name.as_str());
         if config.reorder_on_add {
+            if old_mode == ActivityMode::Compact {
+                ord.borrow_mut().activate(activity_id);
+            }
             Self::update_activity_order(ord, &config);
         }
 
         self.configure_widget(activity_id);
+        widget.remove_css_class("being-added");
     }
 
     fn get_activity(&self, activity: &ActivityIdentifier) -> ROption<SabiWidget> {

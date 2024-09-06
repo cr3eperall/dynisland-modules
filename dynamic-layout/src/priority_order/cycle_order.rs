@@ -186,6 +186,8 @@ impl CycleOrder {
         }
         if self.is_active(id) {
             self.active -= 1;
+        } else if postion.unwrap() < self.active_offset as usize {
+            self.active_offset -= 1;
         }
         self.widget_map.borrow_mut().remove(id);
         self.order.remove(postion.unwrap());

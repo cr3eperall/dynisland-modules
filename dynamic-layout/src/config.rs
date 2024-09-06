@@ -314,6 +314,9 @@ impl DynamicLayout {
                 if aw.last_mode() == ActivityMode::Minimal || aw.mode() != ActivityMode::Minimal {
                     return;
                 }
+                if aw.has_css_class("being-added") {
+                    return;
+                }
                 if let Err(err) = send_deactivate.send(id.clone()) {
                     log::error!("error activating widget: {err}");
                 }
