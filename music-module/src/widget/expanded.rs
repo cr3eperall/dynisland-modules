@@ -18,7 +18,7 @@ use gtk::{
         CompositeTemplateClass, CompositeTemplateDisposeExt, CompositeTemplateInitializingExt,
         CompositeTemplateInstanceCallbacksClass, WidgetClassExt, WidgetImpl,
     },
-    BinLayout, CompositeTemplate, GestureClick, TemplateChild,
+    BinLayout, CompositeTemplate, TemplateChild,
 };
 use tokio::sync::{
     mpsc::{UnboundedReceiver, UnboundedSender},
@@ -161,17 +161,37 @@ impl Expanded {
         imp.progress_bar.set_increments(0.0035, 0.1);
 
         let action_tx = imp.action_tx.borrow().clone();
-        let release_gesture = GestureClick::new();
-        release_gesture.set_button(gdk::BUTTON_PRIMARY);
-        release_gesture.connect_unpaired_release(move |gest, _, _, _, _| {
-            let prog = gest.widget().downcast::<gtk::Scale>().unwrap();
-            action_tx
-                .send(UIAction::SetPosition(Duration::from_millis(
-                    prog.value() as u64
-                )))
-                .expect("failed to send seek message");
+        // let release_gesture = GestureClick::new();
+        // release_gesture.set_button(gdk::BUTTON_PRIMARY);
+        // release_gesture.connect_unpaired_release(move |gest, _, _, _, _| {
+        //     let prog = gest.widget().downcast::<gtk::Scale>().unwrap();
+        //     dynisland_core::abi::log::debug!("unpaired release");
+        //     action_tx
+        //         .send(UIAction::SetPosition(Duration::from_millis(
+        //             prog.value() as u64
+        //         )))
+        //         .expect("failed to send seek message");
+        // });
+        // imp.progress_bar.add_controller(release_gesture);
+
+        let gest = gtk::EventControllerLegacy::new();
+        gest.connect_event(move |gest, event| {
+            let cont = event
+                .modifier_state()
+                .intersects(gdk::ModifierType::BUTTON1_MASK);
+            if event.event_type() == gdk::EventType::ButtonRelease {
+                let prog = gest.widget().downcast::<gtk::Scale>().unwrap();
+                if cont {
+                    action_tx
+                        .send(UIAction::SetPosition(Duration::from_millis(
+                            prog.value() as u64
+                        )))
+                        .expect("failed to send seek message");
+                }
+            }
+            glib::Propagation::Proceed
         });
-        imp.progress_bar.add_controller(release_gesture);
+        imp.progress_bar.add_controller(gest);
 
         this
     }

@@ -18,7 +18,6 @@ use dynisland_core::{
         log,
         module::{ActivityIdentifier, ModuleType, SabiModule, SabiModule_TO, UIServerCommand},
     },
-    activity_map::ActivityMap,
     base_module::{BaseModule, ProducerRuntime},
     dynamic_activity::DynamicActivity,
 };
@@ -149,6 +148,14 @@ fn producer(module: &MusicModule) {
         module.base_module.unregister_activity(act);
     }
     let mut activity_map: HashMap<ActivityIdentifier, Rc<Mutex<DynamicActivity>>> = HashMap::new();
+    let reg = module.base_module.registered_activities();
+    let reg_lock = reg.blocking_lock();
+    for activity_id in reg_lock.list_activities() {
+        let act = reg_lock.get_activity(activity_id.activity()).unwrap();
+        let id = act.blocking_lock().get_identifier().clone();
+        activity_map.insert(id, act);
+    }
+    drop(reg_lock);
     for (window, idx) in to_add {
         let act = widget::get_activity(
             module.base_module.prop_send(),
@@ -160,20 +167,13 @@ fn producer(module: &MusicModule) {
         let id = act.get_identifier();
         log::trace!("Adding activity {}", id);
         let act = Rc::new(Mutex::new(act));
-        module
-            .base_module
-            .register_activity_rc(act.clone())
-            .unwrap();
+        let id = act.blocking_lock().get_identifier().clone();
+        activity_map.insert(id, act);
     }
-    let acitivities_lock = activities.blocking_lock();
-    for activity_id in acitivities_lock.list_activities() {
-        let act = acitivities_lock
-            .get_activity(activity_id.activity())
-            .unwrap();
-        activity_map.insert(activity_id.clone(), act);
+    let mut activity_vec = Vec::new();
+    for (activity_id, act) in activity_map.iter() {
+        activity_vec.push((activity_id.clone(), act.clone()));
     }
-    drop(acitivities_lock);
-
     // activity register manager
     let app_send = module.base_module.app_send();
     let registered_activities = module.base_module.registered_activities();
@@ -219,79 +219,73 @@ fn producer(module: &MusicModule) {
         }
     });
 
-    let activity_list = activities.blocking_lock().list_activities();
-    for activity_id in activity_list {
-        log::trace!("starting producer for {}", activity_id);
+    for (activity_id, act) in activity_vec {
         let activity_name = activity_id.activity();
-        let activities_lock = activities.blocking_lock();
-        if let Ok(act) = activities_lock.get_activity(activity_name) {
-            let conf_idx = get_conf_idx(&activity_id);
-            let config_vec = config.get_for_window(
-                activity_id
-                    .metadata()
-                    .window_name()
-                    .unwrap_or_default()
-                    .as_str(),
-            );
-            let config = config_vec.get(conf_idx).unwrap().clone();
+        let act_lock = act.blocking_lock();
+        let conf_idx = get_conf_idx(&activity_id);
+        let config_vec = config.get_for_window(
+            activity_id
+                .metadata()
+                .window_name()
+                .unwrap_or_default()
+                .as_str(),
+        );
+        let config = config_vec.get(conf_idx).unwrap().clone();
 
-            // set configs
-            let scrolling_label_speed = activities_lock
-                .get_property_any_blocking(activity_name, "scrolling-label-speed")
+        // set configs
+        let scrolling_label_speed = act_lock.get_property_any("scrolling-label-speed").unwrap();
+        rt.handle().spawn(async move {
+            scrolling_label_speed
+                .lock()
+                .await
+                .set(config.scrolling_label_speed)
                 .unwrap();
-            rt.handle().spawn(async move {
-                scrolling_label_speed
-                    .lock()
-                    .await
-                    .set(config.scrolling_label_speed)
-                    .unwrap();
-            });
+        });
 
-            let (player_change_tx, _) =
-                tokio::sync::broadcast::channel::<(MprisPlayer, UnboundedSender<Duration>)>(4);
-            let (event_rx_tx, event_rx_rx) =
-                tokio::sync::mpsc::channel::<UnboundedReceiver<MprisProgressEvent>>(4);
-            let (player_quit_tx, player_quit_rx) = tokio::sync::mpsc::unbounded_channel::<()>();
+        let (player_change_tx, _) =
+            tokio::sync::broadcast::channel::<(MprisPlayer, UnboundedSender<Duration>)>(4);
+        let (event_rx_tx, event_rx_rx) =
+            tokio::sync::mpsc::channel::<UnboundedReceiver<MprisProgressEvent>>(4);
+        let (player_quit_tx, player_quit_rx) = tokio::sync::mpsc::unbounded_channel::<()>();
 
-            // start visualizer updater
-            start_visualizer_updater(&rt, &activities_lock, activity_name, &config);
+        // start visualizer updater
+        start_visualizer_updater(&rt, &act_lock, &config);
 
-            // start ui updater
-            start_ui_updater(
-                &rt,
-                config.clone(),
-                player_quit_tx.clone(),
-                &player_change_tx,
-                event_rx_rx,
-                activities_lock,
-                activity_name,
-            );
+        // start ui updater
+        start_ui_updater(
+            &rt,
+            config.clone(),
+            player_quit_tx.clone(),
+            &player_change_tx,
+            event_rx_rx,
+            act_lock,
+        );
 
-            // start ui action executor
-            let action_rx = {
-                let expanded_mode = act
-                    .blocking_lock()
-                    .get_activity_widget()
-                    .expanded_mode_widget()
-                    .unwrap()
-                    .downcast::<Expanded>()
-                    .unwrap();
-                expanded_mode.imp().action_rx.clone()
-            };
-            start_ui_action_executor(&rt, player_quit_tx, &player_change_tx, action_rx);
+        // start ui action executor
+        let action_rx = {
+            let expanded_mode = act
+                .blocking_lock()
+                .get_activity_widget()
+                .expanded_mode_widget()
+                .unwrap()
+                .downcast::<Expanded>()
+                .unwrap();
+            expanded_mode.imp().action_rx.clone()
+        };
+        start_ui_action_executor(&rt, player_quit_tx, &player_change_tx, action_rx);
 
-            // start new player updater
-            let preferred_player = config.preferred_player.clone();
-            start_player_change_updater(
-                &rt,
-                preferred_player,
-                activity_id,
-                register_tx.clone(),
-                player_change_tx,
-                event_rx_tx,
-                player_quit_rx,
-            );
-        }
+        // start new player updater
+        let preferred_player = config.preferred_player.clone();
+        start_player_change_updater(
+            &rt,
+            preferred_player,
+            activity_id,
+            register_tx.clone(),
+            player_change_tx,
+            event_rx_tx,
+            player_quit_rx,
+            config.use_fallback_player,
+        );
     }
 }
 
@@ -303,19 +297,35 @@ fn start_player_change_updater(
     player_change_tx: tokio::sync::broadcast::Sender<(MprisPlayer, UnboundedSender<Duration>)>,
     event_rx_tx: tokio::sync::mpsc::Sender<UnboundedReceiver<MprisProgressEvent>>,
     mut player_quit_rx: UnboundedReceiver<()>,
+    use_fallback_player: bool,
 ) {
     let mut cleanup = rt.get_cleanup_notifier().subscribe();
     rt.handle().spawn(async move {
         loop {
-            let player = match MprisPlayer::new(&preferred_player) {
+            let player = match MprisPlayer::new(&preferred_player, !use_fallback_player) {
                 Ok(pl) => {
+                    let get_player = pl.get_player();
+                    let player = get_player.lock().unwrap();
+                    let name = player.bus_name_player_name_part();
+                    log::trace!("found player: {name}");
                     register_tx.send((activity_id.clone(), true)).unwrap();
                     pl
                 }
-                Err(_) => {
-                    log::trace!("no player available");
+                Err(err) => {
+                    log::trace!("no player found: {}", err);
                     register_tx.send((activity_id.clone(), false)).unwrap();
-                    tokio::time::sleep(Duration::from_millis(CHECK_DELAY)).await;
+                    tokio::select! {
+                        _ = tokio::time::sleep(Duration::from_millis(CHECK_DELAY))=> {
+
+                        },
+                        clean = cleanup.recv() => {
+                            if let Ok(sender)= clean {
+                                drop(register_tx);
+                                sender.send(()).unwrap();
+                                return;
+                            }
+                        }
+                    };
                     continue;
                 }
             };
@@ -334,7 +344,7 @@ fn start_player_change_updater(
                     log::trace!("time to change player");
                 },
                 _ = player_quit_rx.recv() => {
-                    log::debug!("player has quit");
+                    log::trace!("player has quit");
                 },
                 clean = cleanup.recv() => {
                     if let Ok(sender)= clean {
@@ -356,7 +366,12 @@ fn start_ui_action_executor(
 ) {
     let mut player_change_rx = player_change_tx.subscribe();
     rt.handle().spawn(async move {
-        let (mut player, mut seek_tx) = player_change_rx.recv().await.unwrap();
+        let (mut player, mut seek_tx) = match player_change_rx.recv().await {
+            Ok(data) => data,
+            Err(_) => {
+                return;
+            }
+        };
         let mut set_by_change = true;
         loop {
             if !set_by_change {
@@ -386,13 +401,10 @@ fn start_ui_action_executor(
 
 fn start_visualizer_updater(
     rt: &ProducerRuntime,
-    activities_lock: &MutexGuard<'_, ActivityMap>,
-    activity_name: &str,
+    activities_lock: &MutexGuard<'_, DynamicActivity>,
     config: &MusicConfig,
 ) {
-    let visualizer_data = activities_lock
-        .get_property_any_blocking(activity_name, "visualizer-data")
-        .unwrap();
+    let visualizer_data = activities_lock.get_property_any("visualizer-data").unwrap();
     let conf = config.clone();
     let cleanup = rt.get_cleanup_notifier().subscribe();
     rt.handle().spawn(async move {
@@ -407,28 +419,23 @@ fn start_ui_updater(
     player_quit_tx: UnboundedSender<()>,
     player_change_tx: &tokio::sync::broadcast::Sender<(MprisPlayer, UnboundedSender<Duration>)>,
     mut event_rx_rx: tokio::sync::mpsc::Receiver<UnboundedReceiver<MprisProgressEvent>>,
-    activities_lock: MutexGuard<'_, ActivityMap>,
-    activity_name: &str,
+    act_lock: MutexGuard<'_, DynamicActivity>,
 ) {
-    let metadata = activities_lock
-        .get_property_any_blocking(activity_name, "music-metadata")
-        .unwrap();
-    let time = activities_lock
-        .get_property_any_blocking(activity_name, "music-time")
-        .unwrap();
-    let playback = activities_lock
-        .get_property_any_blocking(activity_name, "playback-status")
-        .unwrap();
-    let album_art = activities_lock
-        .get_property_any_blocking(activity_name, "album-art")
-        .unwrap();
-    let visualizer_gradient = activities_lock
-        .get_property_any_blocking(activity_name, "visualizer-gradient")
-        .unwrap();
+    let metadata = act_lock.get_property_any("music-metadata").unwrap();
+    let time = act_lock.get_property_any("music-time").unwrap();
+    let playback = act_lock.get_property_any("playback-status").unwrap();
+    let album_art = act_lock.get_property_any("album-art").unwrap();
+    let visualizer_gradient = act_lock.get_property_any("visualizer-gradient").unwrap();
 
     let mut change_rx = player_change_tx.subscribe();
     rt.handle().spawn(async move {
-        let mut player = change_rx.recv().await.unwrap().0;
+        let mut player = match change_rx.recv().await {
+            Ok(pl) => pl,
+            Err(_) => {
+                return;
+            }
+        }
+        .0;
         let mut event_rx = event_rx_rx.recv().await.unwrap();
         let mut set_by_change = true;
         loop {

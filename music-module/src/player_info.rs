@@ -111,9 +111,11 @@ pub struct MprisPlayer {
 
 impl MprisPlayer {
     ///uses active player as fallback
-    pub fn new(name: &str) -> Result<Self> {
+    pub fn new(name: &str, exact: bool) -> Result<Self> {
         let player = Self::find_new_player(name)?;
-
+        if !name.is_empty() && player.bus_name_player_name_part() != name && exact {
+            bail!("exact player not found");
+        }
         Ok(Self {
             player: Rc::new(std::sync::Mutex::new(player)),
         })
@@ -126,7 +128,11 @@ impl MprisPlayer {
 
 impl MprisPlayer {
     pub fn clone_player(&self) -> Option<Self> {
-        Self::new(self.player.lock().unwrap().bus_name_player_name_part()).ok()
+        Self::new(
+            self.player.lock().unwrap().bus_name_player_name_part(),
+            true,
+        )
+        .ok()
     }
 }
 

@@ -10,6 +10,7 @@ pub struct MusicConfigMain {
     pub(crate) default_album_art_url: String,
     pub(crate) scrolling_label_speed: f32,
     pub(crate) cava_visualizer_script: String,
+    pub(crate) use_fallback_player: bool,
     pub(crate) windows: HashMap<String, Vec<MusicConfig>>,
 }
 
@@ -22,6 +23,7 @@ impl Default for MusicConfigMain {
             default_album_art_url: String::from(""),
             scrolling_label_speed: 30.0,
             cava_visualizer_script: String::from("echo 0,0,0,0,0,0"),
+            use_fallback_player: true,
             windows: map,
         }
     }
@@ -34,6 +36,7 @@ impl MusicConfigMain {
             default_album_art_url: self.default_album_art_url.clone(),
             scrolling_label_speed: self.scrolling_label_speed,
             cava_visualizer_script: self.cava_visualizer_script.clone(),
+            use_fallback_player: self.use_fallback_player,
         }
     }
     pub fn get_for_window(&self, window: &str) -> Vec<MusicConfig> {
@@ -51,6 +54,7 @@ pub struct MusicConfig {
     pub(crate) default_album_art_url: String,
     pub(crate) scrolling_label_speed: f32,
     pub(crate) cava_visualizer_script: String,
+    pub(crate) use_fallback_player: bool,
 }
 #[allow(clippy::derivable_impls)]
 impl Default for MusicConfig {
@@ -60,6 +64,7 @@ impl Default for MusicConfig {
             default_album_art_url: String::from(""),
             scrolling_label_speed: 30.0,
             cava_visualizer_script: String::from("echo 0,0,0,0,0,0"),
+            use_fallback_player: true,
         }
     }
 }
@@ -71,6 +76,7 @@ pub struct DeMusicConfigMain {
     default_album_art_url: String,
     scrolling_label_speed: f32,
     cava_visualizer_script: String,
+    use_fallback_player: bool,
     windows: HashMap<String, Vec<DeMusicConfig>>,
 }
 
@@ -82,6 +88,7 @@ impl Default for DeMusicConfigMain {
             default_album_art_url: String::from(""),
             scrolling_label_speed: 30.0,
             cava_visualizer_script: String::from("echo 0,0,0,0,0,0"),
+            use_fallback_player: true,
             windows: map,
         }
     }
@@ -106,6 +113,9 @@ impl DeMusicConfigMain {
                     cava_visualizer_script: opt_conf
                         .cava_visualizer_script
                         .unwrap_or(self.cava_visualizer_script.clone()),
+                    use_fallback_player: opt_conf
+                        .use_fallback_player
+                        .unwrap_or(self.use_fallback_player),
                 };
                 conf_vec.push(conf);
             }
@@ -119,6 +129,7 @@ impl DeMusicConfigMain {
                     default_album_art_url: self.default_album_art_url.clone(),
                     scrolling_label_speed: self.scrolling_label_speed,
                     cava_visualizer_script: self.cava_visualizer_script.clone(),
+                    use_fallback_player: self.use_fallback_player,
                 }],
             );
         }
@@ -127,6 +138,7 @@ impl DeMusicConfigMain {
             default_album_art_url: self.default_album_art_url,
             scrolling_label_speed: self.scrolling_label_speed,
             cava_visualizer_script: self.cava_visualizer_script,
+            use_fallback_player: self.use_fallback_player,
             windows,
         }
     }
@@ -139,6 +151,7 @@ pub struct DeMusicConfig {
     default_album_art_url: Option<String>,
     scrolling_label_speed: Option<f32>,
     cava_visualizer_script: Option<String>,
+    use_fallback_player: Option<bool>,
 }
 
 pub fn get_conf_idx(id: &ActivityIdentifier) -> usize {
