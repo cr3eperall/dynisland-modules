@@ -99,6 +99,7 @@ impl Default for DynamicLayoutConfig {
         }
     }
 }
+
 #[derive(Debug, Deserialize, Clone)]
 #[serde(default)]
 pub struct DeDynamicLayoutConfigMain {

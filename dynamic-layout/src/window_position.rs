@@ -77,7 +77,7 @@ impl Default for WindowPosition {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Deserialize, Clone, Default)]
 #[serde(default)]
 pub struct DeWindowPosition {
     pub(crate) layer: Option<Layer>,

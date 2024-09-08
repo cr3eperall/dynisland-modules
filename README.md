@@ -10,6 +10,13 @@
 - [Music](music-module/README.md)
 - [Script](script-module/README.md)
 
+### Planned Modules
+
+- [ ] System tray
+- [ ] Battery
+- [ ] Notifications
+- [ ] System resources
+
 ### Examples
 
 - [Example Implementation](example-module/README.md)

@@ -1,5 +1,6 @@
 use std::{
     rc::Rc,
+    thread,
     time::{Duration, Instant},
 };
 
@@ -366,6 +367,7 @@ impl MprisPlayer {
     pub fn start_progress_tracker(
         &self,
         interval: Duration,
+        force_refresh_interval: Duration,
     ) -> Result<(
         UnboundedReceiver<MprisProgressEvent>,
         UnboundedSender<Duration>,
@@ -397,12 +399,13 @@ impl MprisPlayer {
                 };
 
                 let mut last_refresh = Instant::now();
-                let tick = prog_tracker.tick();
-                let mut progress = MprisProgress::from(tick);
 
                 loop {
                     let mut refresh = false;
-                    if interval.saturating_sub(last_refresh.elapsed()).is_zero() {
+                    if force_refresh_interval
+                        .saturating_sub(last_refresh.elapsed())
+                        .is_zero()
+                    {
                         last_refresh = Instant::now();
                         refresh = true;
                         if prog_tracker.force_refresh().is_err() {
@@ -412,16 +415,17 @@ impl MprisPlayer {
                     let tick = prog_tracker.tick();
                     refresh |= tick.progress_changed;
                     if tick.player_quit {
-                        event_tx.send(MprisProgressEvent::PlayerQuit).unwrap();
+                        break;
                     }
-                    if refresh {
-                        progress = MprisProgress::from(tick);
-                    }
-                    if progress.playback_status == PlaybackStatus::Playing || refresh {
+
+                    if tick.progress.playback_status() == PlaybackStatus::Playing || refresh {
+                        let mut progress = MprisProgress::from(tick);
                         if let Ok(val) = seek_rx.try_recv() {
                             progress.position = val;
-                            //wait for mpris server to update position
-                            last_refresh = Instant::now().checked_add(interval).unwrap();
+                            // wait 2*interval for mpris server to update position
+                            thread::sleep(interval * 2);
+                            last_refresh =
+                                Instant::now().checked_sub(force_refresh_interval).unwrap();
                         }
                         if refresh {
                             progress.can_go_next = match player.can_go_next() {
@@ -449,7 +453,7 @@ impl MprisPlayer {
                             };
                         }
                         if event_tx
-                            .send(MprisProgressEvent::Progress(progress.clone()))
+                            .send(MprisProgressEvent::Progress(progress))
                             .is_err()
                         {
                             break;

@@ -335,7 +335,7 @@ fn start_player_change_updater(
                 player.bus_name_player_name_part().to_string()
             };
             let (event_rx, seek_tx) = player
-                .start_progress_tracker(Duration::from_millis(200))
+                .start_progress_tracker(Duration::from_millis(200), Duration::from_millis(1000))
                 .unwrap();
             player_change_tx.send((player.clone(), seek_tx)).unwrap();
             event_rx_tx.send(event_rx).await.unwrap();

@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 // TODO cleanup
 
 #[derive(Debug, Serialize, Clone)]
-#[serde(default)]
 pub struct ScriptConfigMain {
     pub(crate) scrolling: bool,
     pub(crate) scrolling_speed: f32,
@@ -48,7 +47,6 @@ impl ScriptConfigMain {
 }
 
 #[derive(Debug, Serialize, Clone)]
-#[serde(default)]
 pub struct ScriptConfig {
     #[serde(skip_serializing)]
     pub(crate) scrolling: bool,
