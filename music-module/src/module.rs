@@ -59,10 +59,14 @@ pub fn new(app_send: RSender<UIServerCommand>) -> RResult<ModuleType, RBoxError>
 
     let base_module = BaseModule::new(NAME, app_send.clone());
     let producers_rt = ProducerRuntime::new();
+    let mut config = MusicConfigMain::default();
+    config
+        .windows
+        .insert("".to_string(), vec![config.default_conf()]);
     let this = MusicModule {
         base_module,
         producers_rt,
-        config: MusicConfigMain::default(),
+        config,
     };
     ROk(SabiModule_TO::from_value(this, TD_CanDowncast))
 }
@@ -91,7 +95,12 @@ impl SabiModule for MusicModule {
         log::trace!("config: {}", config);
         match serde_json::from_str::<DeMusicConfigMain>(&config) {
             Ok(conf) => {
-                self.config = conf.into_main_config();
+                let mut conf = conf.into_main_config();
+                if conf.windows.is_empty() {
+                    conf.windows
+                        .insert("".to_string(), vec![conf.default_conf()]);
+                };
+                self.config = conf;
             }
             Err(err) => {
                 log::error!(
@@ -223,14 +232,14 @@ fn producer(module: &MusicModule) {
         let activity_name = activity_id.activity();
         let act_lock = act.blocking_lock();
         let conf_idx = get_conf_idx(&activity_id);
-        let config_vec = config.get_for_window(
+        let config = config.get_for_window(
             activity_id
                 .metadata()
                 .window_name()
                 .unwrap_or_default()
                 .as_str(),
+            conf_idx,
         );
-        let config = config_vec.get(conf_idx).unwrap().clone();
 
         // set configs
         let scrolling_label_speed = act_lock.get_property_any("scrolling-label-speed").unwrap();

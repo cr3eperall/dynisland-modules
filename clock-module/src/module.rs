@@ -28,7 +28,7 @@ use log::Level;
 use ron::ser::PrettyConfig;
 
 use crate::{
-    config::{ClockConfigMain, DeClockConfigMain},
+    config::{get_conf_idx, ClockConfigMain, DeClockConfigMain},
     widget::{clock::Clock, compact::Compact, get_activity},
     NAME,
 };
@@ -49,11 +49,14 @@ pub fn new(app_send: RSender<UIServerCommand>) -> RResult<ModuleType, RBoxError>
 
     let base_module = BaseModule::new(NAME, app_send.clone());
     let producers_rt = ProducerRuntime::new();
-
+    let mut config = ClockConfigMain::default();
+    config
+        .windows
+        .insert("".to_string(), vec![config.default_conf()]);
     let this = ClockModule {
         base_module,
         producers_rt,
-        config: ClockConfigMain::default(),
+        config,
     };
     ROk(SabiModule_TO::from_value(this, TD_CanDowncast))
 }
@@ -82,7 +85,12 @@ impl SabiModule for ClockModule {
         log::trace!("config: {}", config);
         match serde_json::from_str::<DeClockConfigMain>(&config) {
             Ok(conf) => {
-                self.config = conf.into_main_config();
+                let mut conf = conf.into_main_config();
+                if conf.windows.is_empty() {
+                    conf.windows
+                        .insert("".to_string(), vec![conf.default_conf()]);
+                };
+                self.config = conf;
             }
             Err(err) => {
                 log::warn!(
@@ -117,20 +125,6 @@ impl SabiModule for ClockModule {
             producer(self);
         }
     }
-}
-
-pub(crate) fn get_conf_idx(id: &ActivityIdentifier) -> usize {
-    id.metadata()
-        .additional_metadata()
-        .unwrap()
-        .split("|")
-        .find(|s| s.starts_with("instance="))
-        .unwrap()
-        .split("=")
-        .last()
-        .unwrap()
-        .parse::<usize>()
-        .unwrap()
 }
 
 #[allow(unused_variables)]
@@ -173,6 +167,7 @@ fn producer(module: &ClockModule) {
                     .window_name()
                     .unwrap_or_default()
                     .as_str(),
+                conf_idx,
             );
             let comp = act
                 .blocking_lock()
@@ -180,17 +175,17 @@ fn producer(module: &ClockModule) {
                 .compact_mode_widget()
                 .and_downcast::<Compact>()
                 .unwrap();
-            comp.set_format_24h(config[conf_idx].format_24h);
+            comp.set_format_24h(config.format_24h);
             let clock = act
                 .blocking_lock()
                 .get_activity_widget()
                 .minimal_mode_widget()
                 .and_downcast::<Clock>()
                 .unwrap();
-            clock.set_hour_hand_color(config[conf_idx].hour_hand_color.clone());
-            clock.set_minute_hand_color(config[conf_idx].minute_hand_color.clone());
-            clock.set_circle_color(config[conf_idx].circle_color.clone());
-            clock.set_tick_color(config[conf_idx].tick_color.clone());
+            clock.set_hour_hand_color(config.hour_hand_color.clone());
+            clock.set_minute_hand_color(config.minute_hand_color.clone());
+            clock.set_circle_color(config.circle_color.clone());
+            clock.set_tick_color(config.tick_color.clone());
             clock.queue_draw();
         }
         time_list.push(

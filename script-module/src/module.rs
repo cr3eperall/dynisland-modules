@@ -29,7 +29,7 @@ use tokio::{
 };
 
 use crate::{
-    config::{DeScriptConfigMain, ScriptConfig, ScriptConfigMain},
+    config::{get_conf_idx, DeScriptConfigMain, ScriptConfig, ScriptConfigMain},
     utils, widget, NAME,
 };
 
@@ -49,11 +49,14 @@ pub fn new(app_send: RSender<UIServerCommand>) -> RResult<ModuleType, RBoxError>
 
     let base_module = BaseModule::new(NAME, app_send.clone());
     let producers_rt = ProducerRuntime::new();
-
+    let mut config = ScriptConfigMain::default();
+    config
+        .windows
+        .insert("".to_string(), vec![config.default_conf()]);
     let this = ScriptModule {
         base_module,
         producers_rt,
-        config: ScriptConfigMain::default(),
+        config,
     };
     ROk(SabiModule_TO::from_value(this, TD_CanDowncast))
 }
@@ -83,7 +86,12 @@ impl SabiModule for ScriptModule {
 
         match serde_json::from_str::<DeScriptConfigMain>(&config) {
             Ok(conf) => {
-                self.config = conf.into_main_config();
+                let mut conf = conf.into_main_config();
+                if conf.windows.is_empty() {
+                    conf.windows
+                        .insert("".to_string(), vec![conf.default_conf()]);
+                };
+                self.config = conf;
             }
             Err(err) => {
                 log::error!(
@@ -125,20 +133,6 @@ impl SabiModule for ScriptModule {
     }
 }
 
-pub(crate) fn get_conf_idx(id: &ActivityIdentifier) -> usize {
-    id.metadata()
-        .additional_metadata()
-        .unwrap()
-        .split("|")
-        .find(|s| s.starts_with("instance="))
-        .unwrap()
-        .split("=")
-        .last()
-        .unwrap()
-        .parse::<usize>()
-        .unwrap()
-}
-
 fn producer(module: &ScriptModule) {
     let config = &module.config;
     let rt = module.producers_rt.handle();
@@ -174,14 +168,15 @@ fn producer(module: &ScriptModule) {
 
     for activity in activity_list {
         let activity_name = activity.activity();
+        let conf_idx = get_conf_idx(&activity);
         let config = config.get_for_window(
             activity
                 .metadata()
                 .window_name()
                 .unwrap_or_default()
                 .as_str(),
+            conf_idx,
         );
-        let conf_idx = get_conf_idx(&activity);
         let image = activities
             .blocking_lock()
             .get_property_any_blocking(activity_name, "image")
@@ -202,31 +197,30 @@ fn producer(module: &ScriptModule) {
             .blocking_lock()
             .get_property_any_blocking(activity_name, "max-width")
             .unwrap();
-        let conf = config.get(conf_idx).unwrap().clone();
+        let config1 = config.clone();
         rt.spawn(async move {
-            let image_type = utils::get_image_from_url(&conf.minimal_image).await;
+            let image_type = utils::get_image_from_url(&config1.minimal_image).await;
             if let Ok(image_type) = image_type {
                 image.lock().await.set(image_type).unwrap();
             }
-            scrolling.lock().await.set(conf.scrolling).unwrap();
-            max_width.lock().await.set(conf.max_width).unwrap();
+            scrolling.lock().await.set(config1.scrolling).unwrap();
+            max_width.lock().await.set(config1.max_width).unwrap();
             scrolling_speed
                 .lock()
                 .await
-                .set(conf.scrolling_speed)
+                .set(config1.scrolling_speed)
                 .unwrap();
         });
-        let conf = config.get(conf_idx).unwrap().clone();
         let cleanup = module.producers_rt.get_cleanup_notifier();
         rt.spawn(async move {
-            if conf.exec.is_empty() {
+            if config.exec.is_empty() {
                 return;
             }
             let mut cleanup = cleanup.subscribe();
 
             let child = Command::new("sh")
                 .arg("-c")
-                .arg(conf.exec)
+                .arg(config.exec)
                 .stdout(Stdio::piped())
                 .spawn();
             if let Err(err) = child {

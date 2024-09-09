@@ -4,6 +4,8 @@ use gtk::{prelude::*, Window};
 use gtk_layer_shell::LayerShell;
 use serde::{Deserialize, Serialize};
 
+use crate::config::WindowPosition;
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(tag = "Alignment")]
 pub enum Alignment {
@@ -48,46 +50,6 @@ impl Layer {
             Layer::Overlay => gtk_layer_shell::Layer::Overlay,
         }
     }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct WindowPosition {
-    pub(crate) layer: Layer,
-    pub(crate) h_anchor: Alignment,
-    pub(crate) v_anchor: Alignment,
-    pub(crate) margin_x: i32,
-    pub(crate) margin_y: i32,
-    pub(crate) exclusive_zone: i32,
-    pub(crate) monitor: String,
-    pub(crate) layer_shell: bool,
-}
-
-impl Default for WindowPosition {
-    fn default() -> Self {
-        Self {
-            layer: Layer::Top,
-            h_anchor: Alignment::Center,
-            v_anchor: Alignment::Start,
-            margin_x: 0,
-            margin_y: 0,
-            exclusive_zone: -1,
-            monitor: String::from(""),
-            layer_shell: true,
-        }
-    }
-}
-
-#[derive(Debug, Deserialize, Clone, Default)]
-#[serde(default)]
-pub struct DeWindowPosition {
-    pub(crate) layer: Option<Layer>,
-    pub(crate) h_anchor: Option<Alignment>,
-    pub(crate) v_anchor: Option<Alignment>,
-    pub(crate) margin_x: Option<i32>,
-    pub(crate) margin_y: Option<i32>,
-    pub(crate) exclusive_zone: Option<i32>,
-    pub(crate) monitor: Option<String>,
-    pub(crate) layer_shell: Option<bool>,
 }
 
 impl WindowPosition {

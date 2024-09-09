@@ -9,12 +9,13 @@ use dynisland_core::{
     abi::{gdk, glib, gtk, log, module::ActivityIdentifier},
     graphics::activity_widget::{boxed_activity_mode::ActivityMode, ActivityWidget},
 };
+use dynisland_macro::OptDeserializeConfig;
 use gtk::{prelude::*, EventController, StateFlags};
 use serde::{Deserialize, Serialize};
 
 use crate::{
     layout::DynamicLayout,
-    window_position::{DeWindowPosition, WindowPosition},
+    window_position::{Alignment, Layer},
 };
 
 // TODO: cleanup
@@ -131,32 +132,7 @@ impl DeDynamicLayoutConfigMain {
         let mut windows = HashMap::new();
         for (name, opt_config) in self.windows {
             let window_pos = match opt_config.window_position {
-                Some(opt_window_pos) => WindowPosition {
-                    layer: opt_window_pos
-                        .layer
-                        .unwrap_or(self.window_position.layer.clone()),
-                    h_anchor: opt_window_pos
-                        .h_anchor
-                        .unwrap_or(self.window_position.h_anchor.clone()),
-                    v_anchor: opt_window_pos
-                        .v_anchor
-                        .unwrap_or(self.window_position.v_anchor.clone()),
-                    margin_x: opt_window_pos
-                        .margin_x
-                        .unwrap_or(self.window_position.margin_x),
-                    margin_y: opt_window_pos
-                        .margin_y
-                        .unwrap_or(self.window_position.margin_y),
-                    exclusive_zone: opt_window_pos
-                        .exclusive_zone
-                        .unwrap_or(self.window_position.exclusive_zone),
-                    monitor: opt_window_pos
-                        .monitor
-                        .unwrap_or(self.window_position.monitor.clone()),
-                    layer_shell: opt_window_pos
-                        .layer_shell
-                        .unwrap_or(self.window_position.layer_shell),
-                },
+                Some(opt_window_pos) => opt_window_pos.into_config(&self.window_position),
                 None => self.window_position.clone(),
             };
             let conf = DynamicLayoutConfig {
@@ -423,6 +399,33 @@ impl DynamicLayout {
         if !config.window_position.layer_shell {
             container.set_halign(config.window_position.h_anchor.map_gtk());
             container.set_valign(config.window_position.v_anchor.map_gtk());
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, OptDeserializeConfig)]
+pub struct WindowPosition {
+    pub(crate) layer: Layer,
+    pub(crate) h_anchor: Alignment,
+    pub(crate) v_anchor: Alignment,
+    pub(crate) margin_x: i32,
+    pub(crate) margin_y: i32,
+    pub(crate) exclusive_zone: i32,
+    pub(crate) monitor: String,
+    pub(crate) layer_shell: bool,
+}
+
+impl Default for WindowPosition {
+    fn default() -> Self {
+        Self {
+            layer: Layer::Top,
+            h_anchor: Alignment::Center,
+            v_anchor: Alignment::Start,
+            margin_x: 0,
+            margin_y: 0,
+            exclusive_zone: -1,
+            monitor: String::from(""),
+            layer_shell: true,
         }
     }
 }

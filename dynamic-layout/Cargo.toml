@@ -11,6 +11,7 @@ license = "MIT"
 
 [dependencies]
 dynisland-core = { workspace=true, version="0.1.2" }
+dynisland-macro = { workspace=true, version="0.1.0" }
 
 tokio = { version = "1.39.0", features = ["rt", "time", "sync", "macros"] }
 anyhow = "1.0.86"

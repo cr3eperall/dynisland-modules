@@ -24,7 +24,7 @@ use ron::ser::PrettyConfig;
 
 use super::NAME;
 use crate::{
-    config::{DeExampleConfigMain, ExampleConfigMain},
+    config::{get_conf_idx, DeExampleConfigMain, ExampleConfigMain},
     widget,
 };
 
@@ -42,10 +42,14 @@ pub fn new(app_send: RSender<UIServerCommand>) -> RResult<ModuleType, RBoxError>
     }
 
     let base_module = BaseModule::new(NAME, app_send);
+    let mut config = ExampleConfigMain::default();
+    config
+        .windows
+        .insert("".to_string(), vec![config.default_conf()]);
     let this = ExampleModule {
         base_module,
         producers_rt: ProducerRuntime::new(),
-        config: ExampleConfigMain::default(),
+        config,
     };
     ROk(SabiModule_TO::from_value(this, TD_CanDowncast))
 }
@@ -76,7 +80,12 @@ impl SabiModule for ExampleModule {
 
         match serde_json::from_str::<DeExampleConfigMain>(&config) {
             Ok(conf) => {
-                self.config = conf.into_main_config();
+                let mut conf = conf.into_main_config();
+                if conf.windows.is_empty() {
+                    conf.windows
+                        .insert("".to_string(), vec![conf.default_conf()]);
+                };
+                self.config = conf;
             }
             Err(err) => {
                 log::error!(
@@ -113,20 +122,6 @@ impl SabiModule for ExampleModule {
     }
 }
 
-pub(crate) fn get_conf_idx(id: &ActivityIdentifier) -> usize {
-    id.metadata()
-        .additional_metadata()
-        .unwrap()
-        .split("|")
-        .find(|s| s.starts_with("instance="))
-        .unwrap()
-        .split("=")
-        .last()
-        .unwrap()
-        .parse::<usize>()
-        .unwrap()
-}
-
 #[allow(unused_variables)]
 fn producer(module: &ExampleModule) {
     let config = &module.config;
@@ -158,14 +153,15 @@ fn producer(module: &ExampleModule) {
     let activity_list = activities.blocking_lock().list_activities();
     for activity in activity_list {
         let activity_name = activity.activity();
+        let conf_idx = get_conf_idx(&activity);
         let config = config.get_for_window(
             activity
                 .metadata()
                 .window_name()
                 .unwrap_or_default()
                 .as_str(),
+            conf_idx,
         );
-        let conf_idx = get_conf_idx(&activity);
         let label = activities
             .blocking_lock()
             .get_property_any_blocking(activity_name, "comp-label")
@@ -179,21 +175,20 @@ fn producer(module: &ExampleModule) {
             .get_property_any_blocking(activity_name, "rolling-char")
             .unwrap();
 
-        let conf = config.get(conf_idx).unwrap().clone();
         // log::debug!("starting task");
         module.producers_rt.handle().spawn(async move {
             // log::debug!("task started");
             loop {
                 rolling_char.lock().await.set('0').unwrap();
-                tokio::time::sleep(tokio::time::Duration::from_millis(conf.duration)).await;
+                tokio::time::sleep(tokio::time::Duration::from_millis(config.duration)).await;
                 rolling_char.lock().await.set('1').unwrap();
-                tokio::time::sleep(tokio::time::Duration::from_millis(conf.duration)).await;
+                tokio::time::sleep(tokio::time::Duration::from_millis(config.duration)).await;
                 rolling_char.lock().await.set('2').unwrap();
-                tokio::time::sleep(tokio::time::Duration::from_millis(conf.duration)).await;
+                tokio::time::sleep(tokio::time::Duration::from_millis(config.duration)).await;
                 rolling_char.lock().await.set('3').unwrap();
-                tokio::time::sleep(tokio::time::Duration::from_millis(conf.duration)).await;
+                tokio::time::sleep(tokio::time::Duration::from_millis(config.duration)).await;
                 rolling_char.lock().await.set('4').unwrap();
-                tokio::time::sleep(tokio::time::Duration::from_millis(conf.duration)).await;
+                tokio::time::sleep(tokio::time::Duration::from_millis(config.duration)).await;
 
                 scrolling_text
                     .lock()
