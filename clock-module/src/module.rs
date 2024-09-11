@@ -63,10 +63,7 @@ pub fn new(app_send: RSender<UIServerCommand>) -> RResult<ModuleType, RBoxError>
 
 impl SabiModule for ClockModule {
     fn init(&self) {
-        let base_module = self.base_module.clone();
-        glib::MainContext::default().spawn_local(async move {
-            base_module.register_producer(self::producer);
-        });
+        self.base_module.register_producer(self::producer);
 
         let fallback_provider = gtk::CssProvider::new();
         let css = grass::from_string(include_str!("../default.scss"), &grass::Options::default())
@@ -141,7 +138,7 @@ fn producer(module: &ClockModule) {
     let (to_remove, to_add) = acitvities_to_update(&current_activities, &desired_activities);
     for act in to_remove {
         log::trace!("Removing activity {}", act);
-        module.base_module.unregister_activity(act);
+        module.base_module.unregister_activity(act.activity());
     }
     for (window, idx) in to_add {
         let act = get_activity(
@@ -205,13 +202,12 @@ fn producer(module: &ClockModule) {
             }
         }
     });
-    // todo!("do stuff")
 }
 
 pub fn acitvities_to_update<'a>(
     current: &'a Vec<ActivityIdentifier>,
     desired: &'a Vec<(&'a str, usize)>,
-) -> (Vec<&'a str>, Vec<(&'a str, usize)>) {
+) -> (Vec<&'a ActivityIdentifier>, Vec<(&'a str, usize)>) {
     // (remove, add)
     //remove activities
     let mut to_remove = Vec::new();
@@ -224,10 +220,10 @@ pub fn acitvities_to_update<'a>(
             .find(|(name, count)| *name == window_name && *count > idx)
             .is_none()
         {
-            to_remove.push(act.activity());
+            to_remove.push(act);
         }
-        let idx: usize = *current_windows.get(&window_name).unwrap_or(&0).max(&idx);
-        current_windows.insert(window_name, idx);
+        let max_idx: usize = *current_windows.get(&window_name).unwrap_or(&0).max(&idx);
+        current_windows.insert(window_name, max_idx);
     }
     //add activities
     let mut to_add = Vec::new();

@@ -73,10 +73,7 @@ pub fn new(app_send: RSender<UIServerCommand>) -> RResult<ModuleType, RBoxError>
 
 impl SabiModule for MusicModule {
     fn init(&self) {
-        let base_module = self.base_module.clone();
-        glib::MainContext::default().spawn_local(async move {
-            base_module.register_producer(self::producer);
-        });
+        self.base_module.register_producer(self::producer);
 
         let fallback_provider = gtk::CssProvider::new();
         let css = grass::from_string(include_str!("../default.scss"), &grass::Options::default())
@@ -308,7 +305,7 @@ fn start_player_change_updater(
     mut player_quit_rx: UnboundedReceiver<()>,
     use_fallback_player: bool,
 ) {
-    let mut cleanup = rt.get_cleanup_notifier().subscribe();
+    let mut cleanup = rt.get_cleanup_notifier();
     rt.handle().spawn(async move {
         loop {
             let player = match MprisPlayer::new(&preferred_player, !use_fallback_player) {
@@ -415,7 +412,7 @@ fn start_visualizer_updater(
 ) {
     let visualizer_data = activities_lock.get_property_any("visualizer-data").unwrap();
     let conf = config.clone();
-    let cleanup = rt.get_cleanup_notifier().subscribe();
+    let cleanup = rt.get_cleanup_notifier();
     rt.handle().spawn(async move {
         visualizer_task(&conf.cava_visualizer_script, visualizer_data, cleanup).await;
         log::debug!("visualizer task has exited");

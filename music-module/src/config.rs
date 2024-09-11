@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
-use dynisland_core::abi::module::ActivityIdentifier;
-use dynisland_macro::{MultiWidgetConfig, OptDeserializeConfig};
+use dynisland_core::{
+    abi::module::ActivityIdentifier,
+    d_macro::{MultiWidgetConfig, OptDeserializeConfig},
+};
 use serde::Serialize;
 
 #[derive(Debug, Serialize, Clone, MultiWidgetConfig, OptDeserializeConfig)]
@@ -26,15 +28,9 @@ impl Default for MusicConfig {
     }
 }
 
-pub fn get_conf_idx(id: &ActivityIdentifier) -> usize {
+pub(crate) fn get_conf_idx(id: &ActivityIdentifier) -> usize {
     id.metadata()
-        .additional_metadata()
-        .unwrap()
-        .split("|")
-        .find(|s| s.starts_with("instance="))
-        .unwrap()
-        .split("=")
-        .last()
+        .additional_metadata("instance")
         .unwrap()
         .parse::<usize>()
         .unwrap()

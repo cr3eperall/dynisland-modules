@@ -7,9 +7,9 @@ use std::{
 
 use dynisland_core::{
     abi::{gdk, glib, gtk, log, module::ActivityIdentifier},
+    d_macro::OptDeserializeConfig,
     graphics::activity_widget::{boxed_activity_mode::ActivityMode, ActivityWidget},
 };
-use dynisland_macro::OptDeserializeConfig;
 use gtk::{prelude::*, EventController, StateFlags};
 use serde::{Deserialize, Serialize};
 

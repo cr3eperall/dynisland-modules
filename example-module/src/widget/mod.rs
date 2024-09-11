@@ -26,7 +26,7 @@ pub fn get_activity(
         module,
         &(name.to_string() + "-" + &idx.to_string()),
         Some(window),
-        Some(&("instance=".to_string() + &idx.to_string())),
+        vec![("instance".to_string(), idx.to_string())],
     );
     //create activity widget
     let activity_widget = dynamic_act.get_activity_widget();

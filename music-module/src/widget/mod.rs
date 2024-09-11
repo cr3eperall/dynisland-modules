@@ -65,7 +65,7 @@ pub fn get_activity(
         module,
         &(name.to_string() + "-" + &idx.to_string()),
         Some(window),
-        Some(&("instance=".to_string() + &idx.to_string())),
+        vec![("instance".to_string(), idx.to_string())],
     );
 
     let activity_widget = activity.get_activity_widget();

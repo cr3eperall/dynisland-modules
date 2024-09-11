@@ -96,7 +96,7 @@ pub(crate) async fn ui_update_task(
     while let Some(event) = event_rx.recv().await {
         match event {
             crate::player_info::MprisProgressEvent::PlayerQuit => {
-                log::warn!("player has quit");
+                log::debug!("player has quit");
 
                 set_album_art(
                     None,
