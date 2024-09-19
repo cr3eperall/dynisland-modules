@@ -646,7 +646,10 @@ async fn start_item_updater(
             async move {
                 while let Some(_) = tokio::select! {
                     _ = new_icon.next() => {
-                        compact.update_item_icon(&item_id, item.icon(30, 1).await);
+                        // for some reason item properties are stuck on the same value, so a new connection is created
+                        let new_item = Item::from_address(item.sni.inner().connection(), &item_id).await.unwrap_or(item.clone());
+                        let icon = new_item.icon(30, 1).await;
+                        compact.update_item_icon(&item_id, icon);
                         Some(())
                     }
                     _ = cleanup.recv() => {
@@ -666,7 +669,9 @@ async fn start_item_updater(
             async move {
                 while let Some(_) = tokio::select! {
                     _ = new_icon_attention.next() => {
-                        compact.update_item_attention_icon(&item_id, item.attention_icon(30, 1).await);
+                        // for some reason item properties are stuck on the same value, so a new connection is created
+                        let new_item = Item::from_address(item.sni.inner().connection(), &item_id).await.unwrap_or(item.clone());
+                        compact.update_item_attention_icon(&item_id, new_item.attention_icon(30, 1).await);
                         Some(())
                     }
                     _ = cleanup.recv() => {
@@ -686,9 +691,11 @@ async fn start_item_updater(
             async move {
                 while let Some(_) = tokio::select! {
                     _ = new_icon_overlay.next() => {
+                        // for some reason item properties are stuck on the same value, so a new connection is created
+                        let new_item = Item::from_address(item.sni.inner().connection(), &item_id).await.unwrap_or(item.clone());
                         compact.update_item_overlay_icon(
                             &item_id,
-                            item.overlay_icon(30, 1).await,
+                            new_item.overlay_icon(30, 1).await,
                         );
                         Some(())
                     }
@@ -709,7 +716,9 @@ async fn start_item_updater(
             async move {
                 while let Some(_) = tokio::select! {
                     _ = new_tooltip.next() => {
-                        let tooltip = match item.tooltip().await {
+                        // for some reason item properties are stuck on the same value, so a new connection is created
+                        let new_item = Item::from_address(item.sni.inner().connection(), &item_id).await.unwrap_or(item.clone());
+                        let tooltip = match new_item.tooltip().await {
                             Ok((_icon_name, _icon_data, title, description)) => {
                                 if !description.is_empty(){
                                     format!("{}\n{}", title, description)
@@ -717,7 +726,7 @@ async fn start_item_updater(
                                     title
                                 }
                             }
-                            Err(_) => item.title().await.unwrap_or("".to_string()),
+                            Err(_) => new_item.title().await.unwrap_or("".to_string()),
                         };
                         compact.update_item_tooltip(&item_id, &tooltip);
                         Some(())
@@ -739,9 +748,11 @@ async fn start_item_updater(
             async move {
                 while let Some(_) = tokio::select! {
                     _ = new_status.next()=> {
-                    compact
-                        .update_item_status(&item_id, item.status().await.unwrap());
-                    Some(())
+                        // for some reason item properties are stuck on the same value, so a new connection is created
+                        let new_item = Item::from_address(item.sni.inner().connection(), &item_id).await.unwrap_or(item.clone());
+                        compact
+                            .update_item_status(&item_id, new_item.status().await.unwrap());
+                        Some(())
                     }
                     _ = cleanup.recv() => {
                         None
@@ -760,7 +771,9 @@ async fn start_item_updater(
             async move {
                 while let Some(_) = tokio::select! {
                     _ = new_title.next() => {
-                        let tooltip = match item.tooltip().await {
+                        // for some reason item properties are stuck on the same value, so a new connection is created
+                        let new_item = Item::from_address(item.sni.inner().connection(), &item_id).await.unwrap_or(item.clone());
+                        let tooltip = match new_item.tooltip().await {
                             Ok((_icon_name, _icon_data, title, description)) => {
                                 if !description.is_empty(){
                                     format!("{}\n{}", title, description)
@@ -768,7 +781,7 @@ async fn start_item_updater(
                                     title
                                 }
                             }
-                            Err(_) => item.title().await.unwrap_or("".to_string()),
+                            Err(_) => new_item.title().await.unwrap_or("".to_string()),
                         };
                         compact.update_item_tooltip(&item_id, &tooltip);
                         Some(())

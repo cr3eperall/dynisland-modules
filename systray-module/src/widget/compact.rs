@@ -313,13 +313,14 @@ impl Compact {
             data.icon = icon;
             let image = overlay.child().unwrap().downcast::<gtk::Image>().unwrap();
             match data.status {
-                Status::Passive => {
+                Status::Passive | Status::Active => {
                     image.set_paintable(Some(&data.icon));
                 }
-                Status::Active => {
-                    image.set_paintable(Some(&data.icon));
+                Status::NeedsAttention => {
+                    if data.attention_icon.is_none() {
+                        image.set_paintable(Some(&data.icon));
+                    }
                 }
-                _ => {}
             }
         }
     }

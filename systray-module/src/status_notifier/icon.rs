@@ -232,6 +232,8 @@ pub async fn load_icon_from_sni(
         ),
     };
 
+    log::trace!("cant get it from name, trying pixmap");
+
     // Can't get it from name + theme, try the pixmap
     let (pixmap_tx, pixmap_rx) =
         tokio::sync::oneshot::channel::<zbus::Result<Vec<(i32, i32, Vec<u8>)>>>();

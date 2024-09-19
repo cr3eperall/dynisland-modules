@@ -180,10 +180,22 @@ impl Expanded {
         next_path.pop();
         let (parent, child) = find_child_from_path(&layout, &next_path);
         if child.id != prev_page.id() {
-            return;
+            prev_page.update_from_layout_parent(parent, self.imp().item_id.borrow().clone());
         }
+        let existing_path_idx = next_path
+            .iter()
+            .enumerate()
+            .rev()
+            .find(|(_, id)| **id == child.id as usize)
+            .unwrap_or((0, &0));
+        if existing_path_idx.0 != 0 {
+            next_path.truncate(existing_path_idx.0 + 1);
+        } else {
+            next_path.clear();
+        }
+
         next_page.update_from_layout_parent(parent, self.imp().item_id.borrow().clone());
-        current_path.pop();
+        *current_path = next_path;
 
         prev_page.set_reveal(true, true, *self.imp().heigth_mode.borrow());
         page.set_reveal(false, false, *self.imp().heigth_mode.borrow());
@@ -246,12 +258,14 @@ impl Expanded {
         next_page.revealer().set_reveal_child(false);
         if current_path.is_empty() {
             page.update_from_layout_parent(&layout.root, self.imp().item_id.borrow().clone());
-        } else if current_path.len() == 1 {
-            prev_page.update_from_layout_parent(&layout.root, self.imp().item_id.borrow().clone());
-            let child = &layout.root.children[current_path[0]];
-            page.update_from_layout_parent(child, self.imp().item_id.borrow().clone());
         } else {
             let (parent, child) = find_child_from_path(&layout, &current_path);
+            if child.id != *current_path.last().unwrap() as i32 {
+                drop(current_path);
+                drop(layout);
+                self.go_back();
+                return;
+            }
             prev_page.update_from_layout_parent(parent, self.imp().item_id.borrow().clone());
             page.update_from_layout_parent(child, self.imp().item_id.borrow().clone());
         }
