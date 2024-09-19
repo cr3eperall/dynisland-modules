@@ -96,6 +96,8 @@ impl ObjectSubclass for ExpandedPriv {
         Visualizer::ensure_type();
         klass.set_layout_manager_type::<BinLayout>();
         klass.bind_template();
+        // Warning: template callbacks only work if the module is embedded
+        // If the module is dynamically loaded it works if only one module uses template callbacks
         klass.bind_template_instance_callbacks();
     }
 
@@ -103,6 +105,9 @@ impl ObjectSubclass for ExpandedPriv {
         obj.init_template();
     }
 }
+
+// Warning: template callbacks only work if the module is embedded
+// If the module is dynamically loaded it works if only one module uses template callbacks
 #[gtk::template_callbacks]
 impl Expanded {
     #[template_callback]

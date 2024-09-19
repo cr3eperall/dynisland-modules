@@ -269,7 +269,6 @@ pub(crate) async fn wait_for_new_player_task(current_player_name: &str, preferre
     } else {
         current_player_name
     };
-    let preferred_player = preferred_player;
 
     let mut check_if_quit = false;
     if let Ok(pl) = MprisPlayer::find_new_player(&preferred_player) {
