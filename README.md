@@ -9,10 +9,10 @@
 - [Clock](clock-module/README.md)
 - [Music](music-module/README.md)
 - [Script](script-module/README.md)
+- [Systray](systray-module/README.md)
 
 ### Planned Modules
 
-- [ ] System tray
 - [ ] Battery
 - [ ] Notifications
 - [ ] System resources

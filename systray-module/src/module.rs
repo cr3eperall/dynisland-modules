@@ -23,13 +23,14 @@ use dynisland_core::{
     dynamic_property::DynamicPropertyAny,
     graphics::activity_widget::{boxed_activity_mode::ActivityMode, ActivityWidget},
 };
+#[cfg(not(feature = "embedded"))]
 use env_logger::Env;
 use ron::ser::PrettyConfig;
 use tokio::sync::Mutex;
 use zbus::export::ordered_stream::OrderedStreamExt;
 
 use crate::{
-    config::{DeSystrayConfigMain, SystrayConfig, SystrayConfigMain},
+    config::{DeSystrayConfigMain, MenuHeightMode, SystrayConfig, SystrayConfigMain},
     status_notifier::{self, item::Item, menu::Menu, watcher::Watcher},
     widget::{
         compact::{Compact, ItemAction, ItemData},
@@ -216,6 +217,18 @@ fn producer(module: &SystrayModule) {
             .blocking_lock()
             .get_activity(activity_id.activity())
             .unwrap();
+
+        let menu_height_mode = dyn_act
+            .blocking_lock()
+            .get_property_any("height-mode")
+            .unwrap();
+        menu_height_mode
+            .blocking_lock()
+            .set(MenuHeightMode::from(
+                activity_config.menu_height_mode.as_str(),
+            ))
+            .unwrap();
+
         let activity_widget = dyn_act.blocking_lock().get_activity_widget();
         let compact = activity_widget
             .compact_mode_widget()

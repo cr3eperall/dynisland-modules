@@ -1,3 +1,9 @@
+//! Implementation of the StatusNotifierItem and dbusmenu protocols.
+//!
+//! The proxy module was taken from [eww](https://github.com/elkowar/eww/tree/master/crates/notifier_host/src/proxy)
+//!
+//! `host.rs`, `icon.rs`, `item.rs` and `watcher.rs` were taken from [eww](https://github.com/elkowar/eww/tree/master/crates/notifier_host/src/proxy)
+//!  and slightly modified for use with gtk4 and dynisland.
 pub mod host;
 pub mod icon;
 pub mod item;

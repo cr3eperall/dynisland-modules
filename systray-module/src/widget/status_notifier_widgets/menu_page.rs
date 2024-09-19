@@ -25,7 +25,10 @@ use gtk::{
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::menu_item::{MenuItem, MenuItemAction};
-use crate::status_notifier::layout::{self, LayoutChild, LayoutProperty, TypeProperty};
+use crate::{
+    config::MenuHeightMode,
+    status_notifier::layout::{self, LayoutChild, LayoutProperty, TypeProperty},
+};
 
 glib::wrapper! {
     pub struct MenuPage(ObjectSubclass<MenuPagePriv>)
@@ -83,7 +86,6 @@ impl ObjectImpl for MenuPagePriv {
         self.revealer.connect_child_revealed_notify(move |rev| {
             let reveal = rev.is_child_revealed();
             scrolled_window.set_propagate_natural_height(reveal);
-            // scrolled_window.set_propagate_natural_width(reveal);
         });
         let this = self.obj().clone();
         self.back_button.connect_clicked(move |_| {
@@ -112,7 +114,7 @@ impl MenuPage {
     pub fn revealer(&self) -> gtk::Revealer {
         self.imp().revealer.borrow().get()
     }
-    pub fn set_reveal(&self, reveal: bool, animation_right: bool) {
+    pub fn set_reveal(&self, reveal: bool, animation_right: bool, height_mode: MenuHeightMode) {
         match animation_right {
             true => self
                 .revealer()
@@ -122,13 +124,27 @@ impl MenuPage {
                 .set_transition_type(gtk::RevealerTransitionType::SlideLeft),
         }
         self.revealer().set_reveal_child(reveal);
-        // TODO find the best way to resize during page change, maybe add config option
-        // if reveal {
-        //     self.imp().scrolled_window.get().set_propagate_natural_height(true);
-        // }
-        self.imp()
-            .scrolled_window
-            .set_propagate_natural_height(reveal);
+        match height_mode {
+            MenuHeightMode::Max => {
+                self.imp()
+                    .scrolled_window
+                    .get()
+                    .set_propagate_natural_height(true);
+            }
+            MenuHeightMode::Current => {
+                self.imp()
+                    .scrolled_window
+                    .set_propagate_natural_height(reveal);
+            }
+            MenuHeightMode::TwoStep => {
+                if reveal {
+                    self.imp()
+                        .scrolled_window
+                        .get()
+                        .set_propagate_natural_height(true);
+                }
+            }
+        }
     }
     pub fn update_from_layout_parent(&self, layout_parent: &LayoutChild, item_id: String) {
         match layout_parent

@@ -13,7 +13,7 @@ use module::new;
 pub const NAME: &str = "SystrayModule";
 
 #[cfg_attr(not(feature = "embedded"), export_root_module)]
-fn instantiate_root_module() -> ModuleBuilderRef {
+pub fn instantiate_root_module() -> ModuleBuilderRef {
     ModuleBuilder {
         new,
         name: NAME.into(),

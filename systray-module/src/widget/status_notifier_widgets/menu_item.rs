@@ -115,8 +115,15 @@ impl ObjectImpl for MenuItemPriv {
     }
 }
 impl MenuItemPriv {
-    fn container_clicked(gest: &GestureClick, _n: i32, _x: f64, _y: f64) {
+    fn container_clicked(gest: &GestureClick, _n: i32, x: f64, y: f64) {
         let container = gest.widget();
+        if x < 0.0
+            || y < 0.0
+            || x > container.size(gtk::Orientation::Horizontal).into()
+            || y > container.size(gtk::Orientation::Vertical).into()
+        {
+            return;
+        }
         let item = container.parent().unwrap().downcast::<MenuItem>().unwrap();
         let action_tx = item.imp().action_tx.borrow_mut().clone().unwrap();
         action_tx

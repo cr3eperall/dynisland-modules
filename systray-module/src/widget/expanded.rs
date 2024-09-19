@@ -1,6 +1,10 @@
 use std::{cell::RefCell, sync::Arc};
 
-use dynisland_core::abi::{glib, gtk};
+use dynisland_core::{
+    abi::{glib, gtk},
+    cast_dyn_any,
+    dynamic_activity::DynamicActivity,
+};
 use glib::{
     subclass::{
         object::{ObjectImpl, ObjectImplExt},
@@ -24,7 +28,10 @@ use tokio::sync::{
 };
 
 use super::status_notifier_widgets::{menu_item::MenuItemAction, menu_page::MenuPage};
-use crate::status_notifier::layout::{Layout, LayoutChild};
+use crate::{
+    config::MenuHeightMode,
+    status_notifier::layout::{Layout, LayoutChild},
+};
 
 glib::wrapper! {
     pub struct Expanded(ObjectSubclass<ExpandedPriv>)
@@ -34,6 +41,7 @@ glib::wrapper! {
 #[derive(CompositeTemplate)]
 #[template(resource = "/com/github/cr3eperall/dynislandModules/systrayModule/expanded.ui")]
 pub struct ExpandedPriv {
+    pub heigth_mode: RefCell<MenuHeightMode>,
     pub cleanup_tx: RefCell<Option<tokio::sync::broadcast::Sender<()>>>,
     pub item_id: RefCell<String>,
     pub layout: RefCell<Layout>,
@@ -51,6 +59,7 @@ impl Default for ExpandedPriv {
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
         let (outer_tx, outer_rx) = tokio::sync::mpsc::unbounded_channel();
         Self {
+            heigth_mode: RefCell::new(MenuHeightMode::default()),
             cleanup_tx: RefCell::new(None),
             item_id: RefCell::new(String::new()),
             layout: RefCell::new(Layout::default()),
@@ -90,13 +99,13 @@ impl ObjectImpl for ExpandedPriv {
         let container = self.container.get();
         let action_tx = self.inner_action_tx.borrow().clone();
         let menu_page1 = MenuPage::new(action_tx.clone());
-        menu_page1.set_reveal(false, true);
+        menu_page1.set_reveal(false, true, *self.heigth_mode.borrow());
         container.append(&menu_page1);
         let menu_page2 = MenuPage::new(action_tx.clone());
-        menu_page2.set_reveal(true, false);
+        menu_page2.set_reveal(true, false, *self.heigth_mode.borrow());
         container.append(&menu_page2);
         let menu_page3 = MenuPage::new(action_tx);
-        menu_page3.set_reveal(false, false);
+        menu_page3.set_reveal(false, false, *self.heigth_mode.borrow());
         container.append(&menu_page3);
     }
     fn dispose(&self) {
@@ -110,7 +119,9 @@ impl ObjectImpl for ExpandedPriv {
 impl WidgetImpl for ExpandedPriv {}
 
 impl Expanded {
-    pub fn new() -> Self {
+    /// registered properties:
+    /// * `height-mode`: `MenuHeightMode`
+    pub fn new(activity: &mut DynamicActivity) -> Self {
         let this: Self = Object::builder().build();
         glib::MainContext::default().spawn_local({
             let this = this.clone();
@@ -142,6 +153,15 @@ impl Expanded {
                 }
             }
         });
+        let _ = activity.add_dynamic_property("height-mode", MenuHeightMode::default());
+
+        let expanded = this.clone();
+        activity
+            .subscribe_to_property("height-mode", move |new_value| {
+                let value_mode = cast_dyn_any!(new_value, MenuHeightMode).unwrap();
+                expanded.imp().heigth_mode.replace(*value_mode);
+            })
+            .unwrap();
         this
     }
     pub fn go_back(&self) {
@@ -165,9 +185,9 @@ impl Expanded {
         next_page.update_from_layout_parent(parent, self.imp().item_id.borrow().clone());
         current_path.pop();
 
-        prev_page.set_reveal(true, true);
-        page.set_reveal(false, false);
-        next_page.set_reveal(false, false);
+        prev_page.set_reveal(true, true, *self.imp().heigth_mode.borrow());
+        page.set_reveal(false, false, *self.imp().heigth_mode.borrow());
+        next_page.set_reveal(false, false, *self.imp().heigth_mode.borrow());
 
         self.imp()
             .container
@@ -195,9 +215,9 @@ impl Expanded {
         next_page.update_from_layout_parent(child, self.imp().item_id.borrow().clone());
         current_path.push(id as usize);
 
-        prev_page.set_reveal(false, false);
-        page.set_reveal(false, true);
-        next_page.set_reveal(true, false);
+        prev_page.set_reveal(false, false, *self.imp().heigth_mode.borrow());
+        page.set_reveal(false, true, *self.imp().heigth_mode.borrow());
+        next_page.set_reveal(true, false, *self.imp().heigth_mode.borrow());
 
         self.imp()
             .container

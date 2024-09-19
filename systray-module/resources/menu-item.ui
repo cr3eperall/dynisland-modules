@@ -2,7 +2,7 @@
 <interface>
     <template class="SystrayMenuItemWidget" parent="GtkWidget">
         <property name="valign">center</property>
-        <property name="halign">start</property>
+        <property name="halign">fill</property>
         <property name="visible">true</property>
         <child>
             <object class="GtkCenterBox" id="outer_container">

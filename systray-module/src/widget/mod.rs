@@ -39,7 +39,7 @@ pub fn get_activity(
 
     let compact = Compact::new();
 
-    let expanded = Expanded::new();
+    let expanded = Expanded::new(&mut dynamic_act);
 
     // load widgets into the activity widget
     activity_widget.set_minimal_mode_widget(minimal);

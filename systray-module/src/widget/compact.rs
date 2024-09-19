@@ -148,7 +148,15 @@ impl Compact {
             let action_tx = self.imp().action_tx.borrow().clone();
             let primary_gest = gtk::GestureClick::new();
             primary_gest.set_button(gdk::BUTTON_PRIMARY);
-            primary_gest.connect_released(move |gest, _n, _x, _y| {
+            primary_gest.connect_released(move |gest, _n, x, y| {
+                let wid = gest.widget();
+                if x < 0.0
+                    || y < 0.0
+                    || x > wid.size(gtk::Orientation::Horizontal).into()
+                    || y > wid.size(gtk::Orientation::Vertical).into()
+                {
+                    return;
+                }
                 let button = gest.current_button();
                 action_tx
                     .send((id1.clone(), ItemAction::Clicked(button)))
@@ -161,7 +169,15 @@ impl Compact {
             let action_tx = self.imp().action_tx.borrow().clone();
             let secondary_gest = gtk::GestureClick::new();
             secondary_gest.set_button(gdk::BUTTON_SECONDARY);
-            secondary_gest.connect_released(move |gest, _n, _x, _y| {
+            secondary_gest.connect_released(move |gest, _n, x, y| {
+                let wid = gest.widget();
+                if x < 0.0
+                    || y < 0.0
+                    || x > wid.size(gtk::Orientation::Horizontal).into()
+                    || y > wid.size(gtk::Orientation::Vertical).into()
+                {
+                    return;
+                }
                 let button = gest.current_button();
                 action_tx
                     .send((id1.clone(), ItemAction::Clicked(button)))
@@ -174,7 +190,15 @@ impl Compact {
             let action_tx = self.imp().action_tx.borrow().clone();
             let middle_gest = gtk::GestureClick::new();
             middle_gest.set_button(gdk::BUTTON_MIDDLE);
-            middle_gest.connect_released(move |gest, _n, _x, _y| {
+            middle_gest.connect_released(move |gest, _n, x, y| {
+                let wid = gest.widget();
+                if x < 0.0
+                    || y < 0.0
+                    || x > wid.size(gtk::Orientation::Horizontal).into()
+                    || y > wid.size(gtk::Orientation::Vertical).into()
+                {
+                    return;
+                }
                 let button = gest.current_button();
                 action_tx
                     .send((id1.clone(), ItemAction::Clicked(button)))
