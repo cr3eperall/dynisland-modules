@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <template class="SystrayMenuPageWidget" parent="GtkWidget">
+        <child>
+            <object class="GtkRevealer" id="revealer">
+                <property name="valign">fill</property>
+                <property name="halign">fill</property>
+                <property name="vexpand">false</property>
+                <property name="hexpand">false</property>
+                <property name="overflow">hidden</property>
+                <property name="transition-type">slide-right</property>
+                <property name="transition-duration">500</property>
+                <child>
+                    <object class="GtkScrolledWindow" id="scrolled_window">
+                        <property name="vexpand">false</property>
+                        <property name="hexpand">false</property>
+                        <property name="min-content-width">0</property>
+                        <property name="min-content-height">0</property>
+                        <property name="max-content-height">500</property>
+                        <property name="propagate-natural-height">false</property>
+                        <property name="propagate-natural-width">true</property>
+                        <child>
+                            <object class="GtkBox">
+                                <property name="valign">start</property>
+                                <property name="halign">start</property>
+                                <property name="vexpand">false</property>
+                                <property name="hexpand">false</property>
+                                <property name="orientation">vertical</property>
+                                <property name="homogeneous">false</property>
+                                <child>
+                                    <object class="GtkButton" id="back_button">
+                                        <!-- <signal name="clicked" handler="go_back" swapped="true" /> -->
+                                        <style>
+                                            <class name="back-button" />
+                                        </style>
+                                        <property name="valign">start</property>
+                                        <property name="halign">start</property>
+                                        <property name="vexpand">false</property>
+                                        <property name="hexpand">false</property>
+                                        <property name="visible">false</property>
+                                        <property name="icon-name">go-previous</property>
+                                    </object>
+                                </child>
+                                <child>
+                                    <object class="GtkBox" id="menu_container">
+                                        <property name="valign">fill</property>
+                                        <property name="halign">fill</property>
+                                        <property name="vexpand">false</property>
+                                        <property name="hexpand">false</property>
+                                        <property name="orientation">vertical</property>
+                                    </object>
+                                </child>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </template>
+</interface>

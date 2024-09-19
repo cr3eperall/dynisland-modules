@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <template class="SystrayExpandedWidget" parent="GtkWidget">
+        <property name="valign">fill</property>
+        <property name="halign">center</property>
+        <child>
+            <object class="GtkBox" id="container">
+                <property name="valign">start</property>
+                <property name="halign">fill</property>
+                <property name="vexpand">true</property>
+                <property name="hexpand">false</property>
+                <property name="homogeneous">false</property>
+            </object>
+        </child>
+    </template>
+</interface>

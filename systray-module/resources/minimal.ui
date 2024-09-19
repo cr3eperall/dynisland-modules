@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <template class="SystrayMinimalWidget" parent="GtkWidget">
+        <property name="valign">fill</property>
+        <property name="halign">fill</property>
+        <child>
+            <object class="GtkBox">
+                <property name="valign">center</property>
+                <property name="halign">center</property>
+                <property name="vexpand">false</property>
+                <property name="hexpand">false</property>
+                <property name="overflow">hidden</property>
+                <property name="homogeneous">false</property>
+                <child>
+                    <object class="GtkImage">
+                        <style>
+                            <class name="arrow"/>
+                        </style>
+                        <property name="valign">center</property>
+                        <property name="halign">start</property>
+                        <property name="width-request">20</property>
+                        <property name="height-request">20</property>
+                        <property name="icon-name">go-previous</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="RollingChar" id="roll0">
+                        <property name="current-char"> </property>
+                        <property name="valign">center</property>
+                        <property name="visible">false</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="RollingChar" id="roll1">
+                        <property name="current-char">0</property>
+                        <property name="valign">center</property>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </template>
+</interface>

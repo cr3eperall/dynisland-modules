@@ -1,0 +1,17 @@
+.systray-activity {
+    .mode-compact {
+        &>box > *{
+            margin-left: 3px;
+            margin-right: 3px;
+        }
+        &>box {
+            margin-left: 15px;
+            margin-right: 15px;
+        }
+    }
+    .mode-expanded {
+        &>box {
+            margin: 20px 10px;
+        }
+    }
+}

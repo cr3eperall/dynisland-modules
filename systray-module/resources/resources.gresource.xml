@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/com/github/cr3eperall/dynislandModules/systrayModule">
+    <file compressed="true" preprocess="xml-stripblanks">minimal.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks">compact.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks">expanded.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks">menu-page.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks">menu-item.ui</file>
+  </gresource>
+</gresources>
