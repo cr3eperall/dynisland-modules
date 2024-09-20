@@ -20,32 +20,30 @@ use dynisland_core::{
     },
     base_module::{BaseModule, ProducerRuntime},
     cast_dyn_any,
-    dynamic_property::DynamicPropertyAny,
     graphics::activity_widget::{boxed_activity_mode::ActivityMode, ActivityWidget},
 };
 #[cfg(not(feature = "embedded"))]
 use env_logger::Env;
 use ron::ser::PrettyConfig;
 use tokio::sync::Mutex;
-use zbus::export::ordered_stream::OrderedStreamExt;
 
 use crate::{
     config::{DeSystrayConfigMain, MenuHeightMode, SystrayConfig, SystrayConfigMain},
+    item_menu_tasks, item_tasks,
     status_notifier::{self, item::Item, menu::Menu, watcher::Watcher},
     widget::{
-        compact::{Compact, ItemAction, ItemData},
+        compact::{Compact, ItemAction},
         expanded::Expanded,
-        status_notifier_widgets::menu_item::MenuItemAction,
     },
     NAME,
 };
 
 pub struct SystrayModule {
-    base_module: BaseModule<SystrayModule>,
-    producers_rt: ProducerRuntime,
-    config: SystrayConfigMain,
-    connection: zbus::Connection,
-    items: Arc<Mutex<HashMap<String, (Item, Option<Menu>)>>>,
+    pub(crate) base_module: BaseModule<SystrayModule>,
+    pub(crate) producers_rt: ProducerRuntime,
+    pub(crate) config: SystrayConfigMain,
+    pub(crate) connection: zbus::Connection,
+    pub(crate) items: Arc<Mutex<HashMap<String, (Item, Option<Menu>)>>>,
 }
 
 #[sabi_extern_fn]
@@ -243,20 +241,20 @@ fn producer(module: &SystrayModule) {
         let expanded_action_rx = expanded.imp().action_rx.clone();
         let minimal_count = dyn_act.blocking_lock().get_property_any("count").unwrap();
 
-        start_add_item_task(
+        item_tasks::start_add_item_task(
             &main_context_cleanup_rx,
             &add_item_rx,
             minimal_count.clone(),
             &compact,
         );
 
-        start_remove_item_task(&remove_item_rx, minimal_count.clone(), &compact);
+        item_tasks::start_remove_item_task(&remove_item_rx, minimal_count.clone(), &compact);
 
         let action_rx = compact.imp().action_rx.clone();
 
         start_item_action_task(module, activity_widget, action_rx);
 
-        start_item_menu_action_task(&rt, module, expanded_action_rx);
+        item_menu_tasks::start_item_menu_action_task(&rt, module, expanded_action_rx);
 
         glib::MainContext::default().spawn_local({
             let rt = rt.clone();
@@ -272,69 +270,6 @@ fn producer(module: &SystrayModule) {
     }
 
     register_host(rt, conn, add_item_tx, remove_item_tx);
-}
-
-fn start_item_menu_action_task(
-    rt: &ProducerRuntime,
-    module: &SystrayModule,
-    expanded_action_rx: Arc<Mutex<tokio::sync::mpsc::UnboundedReceiver<(String, MenuItemAction)>>>,
-) {
-    rt.handle().spawn({
-        let items = module.items.clone();
-        async move {
-            while let Some((id, action)) = expanded_action_rx.lock().await.recv().await {
-                let menu = {
-                    let mut lock = items.lock().await;
-                    let item = match lock.get_mut(&id) {
-                        Some(it) => it,
-                        None => continue,
-                    };
-                    if let Some(menu) = item.1.clone() {
-                        menu
-                    } else {
-                        match get_menu(&item.0).await {
-                            Some(menu) => {
-                                item.1 = Some(menu.clone());
-                                menu
-                            }
-                            None => continue,
-                        }
-                    }
-                };
-                match action {
-                    MenuItemAction::Clicked(id) => {
-                        if menu
-                            .event(id, status_notifier::menu::Event::Clicked, None)
-                            .await
-                            .is_err()
-                        {
-                            log::warn!("failed to send click event to menu");
-                        }
-                    }
-                    MenuItemAction::Hovered(id) => {
-                        if menu
-                            .event(id, status_notifier::menu::Event::Hovered, None)
-                            .await
-                            .is_err()
-                        {
-                            log::trace!("failed to send hover event to menu");
-                        }
-                    }
-                    MenuItemAction::OpenMenu(id) => {
-                        if menu.about_to_show(id).await.is_err() {
-                            log::trace!("failed to send about_to_show event to menu");
-                        }
-                    }
-                    _ => {
-                        log::warn!(
-                            "unexpected action: {:?}, should get filtered by MenuPage",
-                            action
-                        );
-                    }
-                }
-            }
-        }
-    });
 }
 
 fn start_item_action_task(
@@ -365,13 +300,14 @@ fn start_item_action_task(
                 match (action, item_is_menu) {
                     (ItemAction::Clicked(gdk::BUTTON_PRIMARY), false) => {
                         if item.activate(mouse_x, mouse_y).await.is_err() {
-                            let menu = get_menu(&item).await;
+                            let menu = item_menu_tasks::get_menu(&item).await;
                             if let Some(menu) = menu {
                                 let layout = menu.get_layout_root().await.unwrap();
                                 expanded.set_layout(layout, Some(Vec::new()), id.clone());
                                 activity_widget.set_mode(ActivityMode::Expanded);
 
-                                start_menu_item_update_task(&expanded, menu, &id).await;
+                                item_menu_tasks::start_item_menu_update_task(&expanded, menu, &id)
+                                    .await;
                             }
                         }
                     }
@@ -380,13 +316,14 @@ fn start_item_action_task(
                     }
                     (ItemAction::Clicked(gdk::BUTTON_SECONDARY), _)
                     | (ItemAction::Clicked(gdk::BUTTON_PRIMARY), true) => {
-                        let menu = get_menu(&item).await;
+                        let menu = item_menu_tasks::get_menu(&item).await;
                         if let Some(menu) = menu {
                             let layout = menu.get_layout_root().await.unwrap();
                             expanded.set_layout(layout, Some(Vec::new()), id.clone());
                             activity_widget.set_mode(ActivityMode::Expanded);
 
-                            start_menu_item_update_task(&expanded, menu, &id).await;
+                            item_menu_tasks::start_item_menu_update_task(&expanded, menu, &id)
+                                .await;
                         } else {
                             let _ = item.context_menu(mouse_x, mouse_y).await;
                         }
@@ -401,91 +338,6 @@ fn start_item_action_task(
             }
         }
     });
-}
-
-async fn start_menu_item_update_task(expanded: &Expanded, menu: Menu, item_id: &String) {
-    let old_cleanup = expanded.imp().cleanup_tx.borrow().clone();
-    if let Some(old_cleanup) = old_cleanup {
-        let _ = old_cleanup.send(());
-    }
-    let (cleanup_tx, cleanup_rx) = tokio::sync::broadcast::channel::<()>(1);
-
-    let layout_updated = menu.dm.receive_layout_updated().await;
-    if let Ok(mut layout_updated) = layout_updated {
-        glib::MainContext::default().spawn_local({
-            // TODO could use normal runtime
-            let mut cleanup = cleanup_rx.resubscribe();
-            let expanded = expanded.clone();
-            let menu = menu.clone();
-            let item_id = item_id.clone();
-            async move {
-                while let Some(_) = tokio::select! {
-                    res = layout_updated.next() => {
-                        if let Some(update) = res {
-                            if let Ok(args)=update.args() {
-                                let mut layout = expanded.imp().layout.borrow().clone();
-                                if layout.update_child(&menu.dm, args.parent).await.is_err(){
-                                    log::warn!("failed to update layout");
-                                };
-                                let current_path = expanded.imp().current_path.borrow().clone();
-                                expanded.set_layout(layout, Some(current_path), item_id.clone());
-                            }
-                        }
-                        Some(())
-                    }
-                    _ = cleanup.recv() => {
-                        None
-                    }
-                } {}
-            }
-        });
-    }
-
-    let item_properties_updated = menu.dm.receive_items_properties_updated().await;
-    if let Ok(mut item_properties_updated) = item_properties_updated {
-        glib::MainContext::default().spawn_local({
-            let mut cleanup = cleanup_rx.resubscribe();
-            let expanded = expanded.clone();
-            let item_id = item_id.clone();
-            async move {
-                while let Some(_) = tokio::select! {
-                    res = item_properties_updated.next() => {
-                        if let Some(update) = res {
-                            if let Ok(args)=update.args() {
-                                let mut layout = expanded.imp().layout.borrow().clone();
-                                if layout.update_props(&args).await.is_err(){
-                                    log::warn!("failed to update layout");
-                                };
-                                let current_path = expanded.imp().current_path.borrow().clone();
-                                expanded.set_layout(layout, Some(current_path), item_id.clone());
-                            }
-                        }
-                        Some(())
-                    }
-                    _ = cleanup.recv() => {
-                        None
-                    }
-                } {}
-            }
-        });
-    }
-    expanded.imp().cleanup_tx.replace(Some(cleanup_tx));
-}
-
-async fn get_menu(item: &Item) -> Option<Menu> {
-    let menu = item.menu().await.ok();
-    let menu = if let Some(menu_path) = menu {
-        Menu::from_address(
-            item.sni.inner().connection(),
-            item.sni.inner().destination(),
-            menu_path,
-        )
-        .await
-        .ok()
-    } else {
-        None
-    };
-    menu
 }
 
 fn get_mouse_position_relative_to_window(widget: &gtk::Widget) -> (i32, i32) {
@@ -518,7 +370,7 @@ fn update_shared_items_task(
             while let Some(_) = tokio::select! {
                 res = add_item_rx.recv() => {
                     if let Ok((item_id, item)) = res{
-                        let menu = get_menu(&item).await;
+                        let menu = item_menu_tasks::get_menu(&item).await;
                         items.lock().await.insert(item_id, (item, menu));
                         Some(())
                     }else{
@@ -553,246 +405,6 @@ fn update_shared_items_task(
             } {}
         }
     });
-}
-
-fn start_remove_item_task(
-    remove_item_rx: &tokio::sync::broadcast::Receiver<String>,
-    minimal_count: Arc<Mutex<DynamicPropertyAny>>,
-    compact: &Compact,
-) {
-    glib::MainContext::default().spawn_local({
-        let mut remove_item_rx = remove_item_rx.resubscribe();
-        let compact = compact.clone();
-        async move {
-            while let Ok(item_id) = remove_item_rx.recv().await {
-                if compact.remove_item(&item_id) {
-                    let mut minimal_count = minimal_count.lock().await;
-                    let count = *cast_dyn_any!(minimal_count.get(), i32).unwrap();
-                    minimal_count.set(count - 1).unwrap();
-                }
-            }
-        }
-    });
-}
-
-fn start_add_item_task(
-    main_context_cleanup_rx: &tokio::sync::broadcast::Receiver<()>,
-    add_item_rx: &tokio::sync::broadcast::Receiver<(String, Item)>,
-    minimal_count: Arc<Mutex<DynamicPropertyAny>>,
-    compact: &Compact,
-) {
-    glib::MainContext::default().spawn_local({
-        let mut add_item_rx = add_item_rx.resubscribe();
-        let compact = compact.clone();
-        let main_context_cleanup_rx = main_context_cleanup_rx.resubscribe();
-        async move {
-            while let Ok(item) = add_item_rx.recv().await {
-                let (item_id, item) = item;
-                let tooltip = match item.tooltip().await {
-                    Ok((_icon_name, _icon_data, title, description)) => {
-                        if !description.is_empty() {
-                            format!("{}\n{}", title, description)
-                        } else {
-                            title
-                        }
-                    }
-                    Err(_) => item.title().await.unwrap_or("".to_string()),
-                };
-                // getting the icon takes a while, so we can parallelize it
-                glib::MainContext::default().spawn_local({
-                    let compact = compact.clone();
-                    let item = item.clone();
-                    let item_id = item_id.clone();
-                    let minimal_count = minimal_count.clone();
-                    async move {
-                        // TODO check if scale should always be 1
-                        let icon = item.icon(30, 1).await;
-                        let attention_icon = item.attention_icon(30, 1).await;
-                        let overlay_icon = item.overlay_icon(30, 1).await;
-                        let data = ItemData {
-                            status: item.status().await.unwrap(),
-                            icon,
-                            attention_icon,
-                            overlay_icon,
-                            tooltip,
-                        };
-                        if compact.insert_item(&item_id, data) {
-                            let mut minimal_count = minimal_count.lock().await;
-                            let count = *cast_dyn_any!(minimal_count.get(), i32).unwrap();
-                            minimal_count.set(count + 1).unwrap();
-                        }
-                    }
-                });
-
-                start_item_updater(&item, &main_context_cleanup_rx, &compact, item_id).await;
-            }
-        }
-    });
-}
-
-async fn start_item_updater(
-    item: &Item,
-    main_context_cleanup_rx: &tokio::sync::broadcast::Receiver<()>,
-    compact: &Compact,
-    item_id: String,
-) {
-    let new_icon = item.sni.receive_new_icon().await;
-    if let Ok(mut new_icon) = new_icon {
-        glib::MainContext::default().spawn_local({
-            let mut cleanup = main_context_cleanup_rx.resubscribe();
-            let compact = compact.clone();
-            let item = item.clone();
-            let item_id = item_id.clone();
-            async move {
-                while let Some(_) = tokio::select! {
-                    _ = new_icon.next() => {
-                        // for some reason item properties are stuck on the same value, so a new connection is created
-                        let new_item = Item::from_address(item.sni.inner().connection(), &item_id).await.unwrap_or(item.clone());
-                        let icon = new_item.icon(30, 1).await;
-                        compact.update_item_icon(&item_id, icon);
-                        Some(())
-                    }
-                    _ = cleanup.recv() => {
-                        None
-                    }
-                } {}
-            }
-        });
-    }
-    let new_icon_attention = item.sni.receive_new_attention_icon().await;
-    if let Ok(mut new_icon_attention) = new_icon_attention {
-        glib::MainContext::default().spawn_local({
-            let mut cleanup = main_context_cleanup_rx.resubscribe();
-            let compact = compact.clone();
-            let item = item.clone();
-            let item_id = item_id.clone();
-            async move {
-                while let Some(_) = tokio::select! {
-                    _ = new_icon_attention.next() => {
-                        // for some reason item properties are stuck on the same value, so a new connection is created
-                        let new_item = Item::from_address(item.sni.inner().connection(), &item_id).await.unwrap_or(item.clone());
-                        compact.update_item_attention_icon(&item_id, new_item.attention_icon(30, 1).await);
-                        Some(())
-                    }
-                    _ = cleanup.recv() => {
-                        None
-                    }
-                } {}
-            }
-        });
-    }
-    let new_icon_overlay = item.sni.receive_new_overlay_icon().await;
-    if let Ok(mut new_icon_overlay) = new_icon_overlay {
-        glib::MainContext::default().spawn_local({
-            let mut cleanup = main_context_cleanup_rx.resubscribe();
-            let compact = compact.clone();
-            let item = item.clone();
-            let item_id = item_id.clone();
-            async move {
-                while let Some(_) = tokio::select! {
-                    _ = new_icon_overlay.next() => {
-                        // for some reason item properties are stuck on the same value, so a new connection is created
-                        let new_item = Item::from_address(item.sni.inner().connection(), &item_id).await.unwrap_or(item.clone());
-                        compact.update_item_overlay_icon(
-                            &item_id,
-                            new_item.overlay_icon(30, 1).await,
-                        );
-                        Some(())
-                    }
-                    _ = cleanup.recv() => {
-                        None
-                    }
-                } {}
-            }
-        });
-    }
-    let new_tooltip = item.sni.receive_new_tool_tip().await;
-    if let Ok(mut new_tooltip) = new_tooltip {
-        glib::MainContext::default().spawn_local({
-            let mut cleanup = main_context_cleanup_rx.resubscribe();
-            let compact = compact.clone();
-            let item = item.clone();
-            let item_id = item_id.clone();
-            async move {
-                while let Some(_) = tokio::select! {
-                    _ = new_tooltip.next() => {
-                        // for some reason item properties are stuck on the same value, so a new connection is created
-                        let new_item = Item::from_address(item.sni.inner().connection(), &item_id).await.unwrap_or(item.clone());
-                        let tooltip = match new_item.tooltip().await {
-                            Ok((_icon_name, _icon_data, title, description)) => {
-                                if !description.is_empty(){
-                                    format!("{}\n{}", title, description)
-                                } else {
-                                    title
-                                }
-                            }
-                            Err(_) => new_item.title().await.unwrap_or("".to_string()),
-                        };
-                        compact.update_item_tooltip(&item_id, &tooltip);
-                        Some(())
-                    }
-                    _ = cleanup.recv() => {
-                        None
-                    }
-                } {}
-            }
-        });
-    }
-    let new_status = item.sni.receive_new_status().await;
-    if let Ok(mut new_status) = new_status {
-        glib::MainContext::default().spawn_local({
-            let mut cleanup = main_context_cleanup_rx.resubscribe();
-            let compact = compact.clone();
-            let item = item.clone();
-            let item_id = item_id.clone();
-            async move {
-                while let Some(_) = tokio::select! {
-                    _ = new_status.next()=> {
-                        // for some reason item properties are stuck on the same value, so a new connection is created
-                        let new_item = Item::from_address(item.sni.inner().connection(), &item_id).await.unwrap_or(item.clone());
-                        compact
-                            .update_item_status(&item_id, new_item.status().await.unwrap());
-                        Some(())
-                    }
-                    _ = cleanup.recv() => {
-                        None
-                    }
-                } {}
-            }
-        });
-    }
-    let new_title = item.sni.receive_new_title().await;
-    if let Ok(mut new_title) = new_title {
-        glib::MainContext::default().spawn_local({
-            let mut cleanup = main_context_cleanup_rx.resubscribe();
-            let compact = compact.clone();
-            let item = item.clone();
-            let item_id = item_id.clone();
-            async move {
-                while let Some(_) = tokio::select! {
-                    _ = new_title.next() => {
-                        // for some reason item properties are stuck on the same value, so a new connection is created
-                        let new_item = Item::from_address(item.sni.inner().connection(), &item_id).await.unwrap_or(item.clone());
-                        let tooltip = match new_item.tooltip().await {
-                            Ok((_icon_name, _icon_data, title, description)) => {
-                                if !description.is_empty(){
-                                    format!("{}\n{}", title, description)
-                                } else {
-                                    title
-                                }
-                            }
-                            Err(_) => new_item.title().await.unwrap_or("".to_string()),
-                        };
-                        compact.update_item_tooltip(&item_id, &tooltip);
-                        Some(())
-                    }
-                    _ = cleanup.recv() => {
-                        None
-                    }
-                } {}
-            }
-        });
-    }
 }
 
 fn register_host(

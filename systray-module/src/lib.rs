@@ -4,6 +4,8 @@ use abi_stable::prefix_type::PrefixTypeTrait;
 use dynisland_core::abi::module::{ModuleBuilder, ModuleBuilderRef};
 
 mod config;
+mod item_menu_tasks;
+mod item_tasks;
 mod module;
 mod status_notifier;
 mod widget;
