@@ -208,6 +208,12 @@ impl TryFrom<(i32, HashMap<String, OwnedValue>, Vec<OwnedValue>)> for LayoutChil
         let (id, properties, children) = value;
 
         let mut properties_map = HashMap::new();
+        if id == 0 {
+            properties_map.insert(
+                LAYOUT_PROP_CHILDREN_DISPLAY.to_string(),
+                LayoutProperty::ChildrenDisplay(true),
+            );
+        }
         for (key, value) in properties {
             let parsed_value = LayoutProperty::try_from((key.as_str(), value))?;
             properties_map.insert(key, parsed_value);
