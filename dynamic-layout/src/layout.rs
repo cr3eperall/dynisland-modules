@@ -279,17 +279,16 @@ impl SabiLayoutManager for DynamicLayout {
                 return ROk(
 r"Commands: 
     add-css [window name (default if none)] <CSS class>
-    remove-css [window name (default if none)] <CSS class>"
+    remove-css [window name (default if none)] <CSS class>
+    show [window name (default if none)]
+    hide [window name (default if none)]"
                 .into());
             }
             "add-css" => {
-                if words.is_empty() || words.len() > 2 {
-                    return RErr(RBoxError::from_fmt("add-css requires 1(CSS class for default window) or 2(window name, CSS class) arguments"));
-                }
                 let (window_name, css_class) = match words.len() {
                     1 => ("", words[0]),
                     2 => (words[0], words[1]),
-                    _ => unreachable!(),
+                    _ => return RErr(RBoxError::from_fmt("add-css requires 1(CSS class for default window) or 2(window name, CSS class) arguments")),
                 };
                 let ords = self.order_managers.borrow();
                 let ord = match ords.get(window_name) {
@@ -306,13 +305,10 @@ r"Commands:
                 };
             }
             "remove-css" => {
-                if words.is_empty() || words.len() > 2 {
-                    return RErr(RBoxError::from_fmt("remove-css requires 1(CSS class for default window) or 2(window name, CSS class) arguments"));
-                }
                 let (window_name, css_class) = match words.len() {
                     1 => ("", words[0]),
                     2 => (words[0], words[1]),
-                    _ => unreachable!(),
+                    _ => return RErr(RBoxError::from_fmt("remove-css requires 1(CSS class for default window) or 2(window name, CSS class) arguments")),
                 };
                 let ords = self.order_managers.borrow();
                 let ord = match ords.get(window_name) {
@@ -327,6 +323,52 @@ r"Commands:
                         return RErr(RBoxError::from_fmt(&format!("CSS class not found")));
                     }
                 };
+            }
+            "show" => {
+                let window_name = match words.len() {
+                    0 => "".to_string(),
+                    1 => words[0].to_string(),
+                    _ => {
+                        return RErr(RBoxError::from_fmt(
+                            "show requires 0(default window) or 1(window name) argument",
+                        ));
+                    }
+                };
+                let ords = self.order_managers.borrow();
+                let ord = match ords.get(&window_name) {
+                    Some(ord) => ord,
+                    None => return RErr(RBoxError::from_fmt("Window not found")),
+                };
+                let window = ord.borrow().get_window();
+                if !window.is_visible() {
+                    window.present();
+                    return ROk("Window is now shown".into());
+                } else {
+                    return ROk("Window was already shown".into());
+                }
+            }
+            "hide" => {
+                let window_name = match words.len() {
+                    0 => "".to_string(),
+                    1 => words[0].to_string(),
+                    _ => {
+                        return RErr(RBoxError::from_fmt(
+                            "hide requires 0(default window) or 1(window name) argument",
+                        ));
+                    }
+                };
+                let ords = self.order_managers.borrow();
+                let ord = match ords.get(&window_name) {
+                    Some(ord) => ord,
+                    None => return RErr(RBoxError::from_fmt("Window not found")),
+                };
+                let window = ord.borrow().get_window();
+                if window.is_visible() {
+                    window.set_visible(false);
+                    return ROk("Window is now hidden".into());
+                } else {
+                    return ROk("Window was already hidden".into());
+                }
             }
             _ => {
                 return RErr(RBoxError::from_fmt(
