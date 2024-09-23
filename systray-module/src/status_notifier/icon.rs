@@ -144,10 +144,14 @@ pub fn icon_from_name(
         theme.add_search_path(path);
         theme
     } else {
-        let theme =gtk::IconTheme::default();
-        let mut env_theme_name=std::env::var("GTK_THEME").unwrap_or_else(|_| "Adwaita".to_string());
+        let theme = gtk::IconTheme::default();
+        let mut env_theme_name =
+            std::env::var("GTK_THEME").unwrap_or_else(|_| "Adwaita".to_string());
         // remove the variant part of the theme name
-        env_theme_name= env_theme_name.split_once(":").map(|(pre,_post)|pre.to_string()).unwrap_or(env_theme_name);
+        env_theme_name = env_theme_name
+            .split_once(":")
+            .map(|(pre, _post)| pre.to_string())
+            .unwrap_or(env_theme_name);
         theme.set_theme_name(Some(&env_theme_name));
         theme
     };

@@ -23,6 +23,7 @@ pub struct CycleOrder {
     pub(crate) active_offset: u16,
     pub(crate) max_shown: u16,
     pub(crate) max_active: u16,
+    pub(crate) css_classes: Vec<String>,
 }
 impl CycleOrder {
     pub fn new(config: &DynamicLayoutConfig, window: &gtk::Window, container: &gtk::Box) -> Self {
@@ -36,6 +37,7 @@ impl CycleOrder {
             order: VecDeque::new(),
             active: 0,
             active_offset: 0,
+            css_classes: Vec::new(),
         }
     }
     fn update_ui(&self) {
@@ -272,6 +274,39 @@ impl CycleOrder {
         if let Some(front) = self.order.pop_front() {
             self.order.push_back(front);
             self.update_ui();
+        }
+    }
+
+    pub fn add_css_class(&mut self, class: &str) -> bool {
+        if self.container.has_css_class(class) {
+            return false;
+        }
+        self.container.add_css_class(class);
+        self.css_classes.push(class.to_string());
+        true
+    }
+
+    pub fn remove_css_class(&mut self, class: &str) -> bool {
+        if !self.css_classes.contains(&class.to_string()) {
+            return false;
+        }
+        self.container.remove_css_class(class);
+        self.css_classes.retain(|c| c != class);
+        true
+    }
+    #[allow(dead_code)]
+    pub fn list_css_classes(&self) -> Vec<String> {
+        self.css_classes.clone()
+    }
+    #[allow(dead_code)]
+    pub fn set_css_classes(&mut self, classes: Vec<&str>) {
+        for class in self.css_classes.clone() {
+            self.container.remove_css_class(&class);
+        }
+        self.css_classes.clear();
+        for class in classes {
+            self.container.add_css_class(class);
+            self.css_classes.push(class.to_string());
         }
     }
 }

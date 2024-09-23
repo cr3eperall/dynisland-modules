@@ -266,6 +266,75 @@ impl SabiLayoutManager for DynamicLayout {
             log::warn!("activity-notification: no activity named: {activity}");
         }
     }
+
+    fn cli_command(&self, command: RString) -> RResult<RString, RBoxError> {
+        let mut words = command.split(' ').collect::<Vec<&str>>();
+        if words.is_empty() {
+            return RErr(RBoxError::from_fmt("No command provided"));
+        }
+        let command = words.remove(0);
+        match command {
+            "help" => {
+                #[rustfmt::skip]
+                return ROk(
+r"Commands: 
+    add-css [window name (default if none)] <CSS class>
+    remove-css [window name (default if none)] <CSS class>"
+                .into());
+            }
+            "add-css" => {
+                if words.is_empty() || words.len() > 2 {
+                    return RErr(RBoxError::from_fmt("add-css requires 1(CSS class for default window) or 2(window name, CSS class) arguments"));
+                }
+                let (window_name, css_class) = match words.len() {
+                    1 => ("", words[0]),
+                    2 => (words[0], words[1]),
+                    _ => unreachable!(),
+                };
+                let ords = self.order_managers.borrow();
+                let ord = match ords.get(window_name) {
+                    Some(ord) => ord,
+                    None => return RErr(RBoxError::from_fmt("Window not found")),
+                };
+                match ord.borrow_mut().add_css_class(css_class) {
+                    true => {
+                        return ROk("CSS class added".into());
+                    }
+                    false => {
+                        return RErr(RBoxError::from_fmt(&format!("CSS class already exists")));
+                    }
+                };
+            }
+            "remove-css" => {
+                if words.is_empty() || words.len() > 2 {
+                    return RErr(RBoxError::from_fmt("remove-css requires 1(CSS class for default window) or 2(window name, CSS class) arguments"));
+                }
+                let (window_name, css_class) = match words.len() {
+                    1 => ("", words[0]),
+                    2 => (words[0], words[1]),
+                    _ => unreachable!(),
+                };
+                let ords = self.order_managers.borrow();
+                let ord = match ords.get(window_name) {
+                    Some(ord) => ord,
+                    None => return RErr(RBoxError::from_fmt("Window not found")),
+                };
+                match ord.borrow_mut().remove_css_class(css_class) {
+                    true => {
+                        return ROk("CSS class removed".into());
+                    }
+                    false => {
+                        return RErr(RBoxError::from_fmt(&format!("CSS class not found")));
+                    }
+                };
+            }
+            _ => {
+                return RErr(RBoxError::from_fmt(
+                    "Unknown command, use 'layout help' for a list of commands",
+                ));
+            }
+        }
+    }
 }
 
 impl DynamicLayout {
@@ -494,6 +563,11 @@ impl DynamicLayout {
             .get_for_window(&window_name)
             .window_position
             .init_window(&window.clone().upcast());
+        if !window_name.is_empty() {
+            window.add_css_class(window_name);
+        } else {
+            window.add_css_class("default-window");
+        }
         //show window
         window.present();
     }

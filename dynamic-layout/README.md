@@ -74,3 +74,11 @@ windows: {
     ),
 }
 ```
+
+## Commands
+
+to send commands to the layout manager, use `dynisland layout <command>`
+
+- `add-css <css_class>` or `add-css [window_name] <css_class>`: Adds a css class to the activity container in that window (if no window is specified, the default one is used).
+- `remove-css <css_class>` or `remove-css [window_name] <css_class>`: Removes a css class from the activity container in that window (if no window is specified, the default one is used).
+- `help`: Shows an help message.
