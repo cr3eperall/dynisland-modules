@@ -281,7 +281,8 @@ r"Commands:
     add-css [window name (default if none)] <CSS class>
     remove-css [window name (default if none)] <CSS class>
     show [window name (default if none)]
-    hide [window name (default if none)]"
+    hide [window name (default if none)]
+    toggle [window name (default if none)]"
                 .into());
             }
             "add-css" => {
@@ -368,6 +369,30 @@ r"Commands:
                     return ROk("Window is now hidden".into());
                 } else {
                     return ROk("Window was already hidden".into());
+                }
+            }
+            "toggle" => {
+                let window_name = match words.len() {
+                    0 => "".to_string(),
+                    1 => words[0].to_string(),
+                    _ => {
+                        return RErr(RBoxError::from_fmt(
+                            "toggle requires 0(default window) or 1(window name) argument",
+                        ));
+                    }
+                }
+                let ords = self.order_managers.borrow();
+                let ord = match ords.get(&window_name) {
+                    Some(ord) => ord,
+                    None => return RErr(RBoxError::from_fmt("Window not found")),
+                };
+                let window = ord.borrow().get_window();
+                if window.is_visible() {
+                    window.set_visible(false);
+                    return ROk("Window is now hidden".into());
+                } else {
+                    window.present();
+                    return ROk("Window is now shown".into());
                 }
             }
             _ => {

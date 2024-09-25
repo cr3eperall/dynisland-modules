@@ -83,4 +83,5 @@ to send commands to the layout manager, use `dynisland layout <command>`
 - `remove-css <css_class>` or `remove-css [window_name] <css_class>`: Removes a css class from the activity container in that window (if no window is specified, the default one is used).
 - `show` or `show [window_name]`: Shows a previously hidden window (if no window is specified, the default one is used).
 - `hide` or `hide [window_name]`: Hides the window with the given name, acts the same as if the window was closed (if no window is specified, the default one is used).
+- `toggle` or `toggle [window_name]`: Toggles the windows visibility (if no window is specified, the default one is used).
 - `help`: Shows an help message.
