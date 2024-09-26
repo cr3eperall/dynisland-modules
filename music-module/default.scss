@@ -71,35 +71,28 @@
         }
 
         .progress {
-            /* background-color: rgb(124, 64, 0); */
-
             .elapsed-time,
             .remaining-time {
                 font-size: 18px;
                 font-weight: bold;
             }
 
-            .progress-bar contents trough {
+            .progress-bar trough {
+                transform: translateY(2px);
+                min-height: 5px;
                 slider {
-                    background-color: transparent;
+                    background-color: white;
                     background-image: none;
                     border-color: transparent;
                     box-shadow: none;
-                    // border-style: hidden;
-                    // color:rgba(0, 0, 0, 0);
-                    // border: 0px solid pink;
-                    // -gtk-secondary-caret-color: rgba(0, 0, 0, 0);
+                    opacity: 0;
                 }
 
                 highlight {
-                    background-color: rgb(118, 118, 118);
-                    color: aqua;
+                    border-radius: 0px;
+                    border-color: transparent;
+                    background-color: white;
                     border-style: solid;
-                    // background-image: none;
-                    // color:rgba(0, 0, 0, 0);
-                    // border: 0px solid pink;
-                    // -gtk-secondary-caret-color: rgba(0, 0, 0, 0);
-
                 }
             }
         }

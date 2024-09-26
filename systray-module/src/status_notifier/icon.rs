@@ -58,6 +58,7 @@ impl Display for IconType {
 }
 
 /// Get the fallback GTK icon, as a final fallback if the tray item has no icon.
+/// needs to be run on gtk thread
 async fn fallback_icon(size: i32, scale: i32) -> gtk::gdk::Paintable {
     let theme = gtk::IconTheme::default();
     theme
@@ -75,6 +76,7 @@ async fn fallback_icon(size: i32, scale: i32) -> gtk::gdk::Paintable {
 /// Load a pixbuf from StatusNotifierItem's [Icon format].
 ///
 /// [Icon format]: https://freedesktop.org/wiki/Specifications/StatusNotifierItem/Icons/
+/// needs to be run on gtk thread
 fn icon_from_pixmap(width: i32, height: i32, mut data: Vec<u8>) -> gtk::gdk_pixbuf::Pixbuf {
     // We need to convert data from ARGB32 to RGBA32, since that's the only one that gdk-pixbuf
     // understands.
@@ -103,6 +105,7 @@ fn icon_from_pixmap(width: i32, height: i32, mut data: Vec<u8>) -> gtk::gdk_pixb
 /// From a list of pixmaps, create an icon from the most appropriately sized one.
 ///
 /// This function returns None if and only if no pixmaps are provided.
+/// needs to be run on gtk thread
 fn icon_from_pixmaps(
     pixmaps: Vec<(i32, i32, Vec<u8>)>,
     size: i32,
@@ -133,6 +136,7 @@ fn icon_from_pixmaps(
 
 /// Load an icon with a given name from either the default (if `theme_path` is `None`), or from the
 /// theme at a path.
+/// needs to be run on gtk thread
 pub fn icon_from_name(
     icon_name: &str,
     theme_path: Option<&str>,
@@ -168,6 +172,7 @@ pub fn icon_from_name(
         .into())
 }
 
+/// needs to be run on gtk thread
 pub async fn load_icon_from_sni(
     sni: &StatusNotifierItemProxy<'static>,
     size: i32,

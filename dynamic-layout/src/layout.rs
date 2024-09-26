@@ -380,7 +380,7 @@ r"Commands:
                             "toggle requires 0(default window) or 1(window name) argument",
                         ));
                     }
-                }
+                };
                 let ords = self.order_managers.borrow();
                 let ord = match ords.get(&window_name) {
                     Some(ord) => ord,
