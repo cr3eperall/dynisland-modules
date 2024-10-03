@@ -302,7 +302,13 @@ fn start_item_action_task(
                         if item.activate(mouse_x, mouse_y).await.is_err() {
                             let menu = item_menu_tasks::get_menu(&item).await;
                             if let Some(menu) = menu {
-                                let layout = menu.get_layout_root().await.unwrap();
+                                let layout = match menu.get_layout_root().await {
+                                    Ok(l) => l,
+                                    Err(err) => {
+                                        log::warn!("failed to get layout: {:#?}", err);
+                                        continue;
+                                    }
+                                };
                                 expanded.set_layout(layout, Some(Vec::new()), id.clone());
                                 activity_widget.set_mode(ActivityMode::Expanded);
 
@@ -318,7 +324,13 @@ fn start_item_action_task(
                     | (ItemAction::Clicked(gdk::BUTTON_PRIMARY), true) => {
                         let menu = item_menu_tasks::get_menu(&item).await;
                         if let Some(menu) = menu {
-                            let layout = menu.get_layout_root().await.unwrap();
+                            let layout = match menu.get_layout_root().await {
+                                Ok(l) => l,
+                                Err(err) => {
+                                    log::warn!("failed to get layout: {:#?}", err);
+                                    continue;
+                                }
+                            };
                             expanded.set_layout(layout, Some(Vec::new()), id.clone());
                             activity_widget.set_mode(ActivityMode::Expanded);
 

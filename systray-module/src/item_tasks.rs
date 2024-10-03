@@ -5,7 +5,7 @@ use tokio::sync::Mutex;
 use zbus::export::ordered_stream::OrderedStreamExt;
 
 use crate::{
-    status_notifier::item::Item,
+    status_notifier::item::{Item, Status},
     widget::compact::{Compact, ItemData},
 };
 
@@ -63,8 +63,9 @@ pub(crate) fn start_add_item_task(
                         let icon = item.icon(30, 1).await;
                         let attention_icon = item.attention_icon(30, 1).await;
                         let overlay_icon = item.overlay_icon(30, 1).await;
+                        let status = item.status().await.unwrap_or(Status::Active);
                         let data = ItemData {
-                            status: item.status().await.unwrap(),
+                            status,
                             icon,
                             attention_icon,
                             overlay_icon,
@@ -205,7 +206,7 @@ async fn start_item_updater(
                         // for some reason item properties are stuck on the same value, so a new connection is created
                         let new_item = Item::from_address(item.sni.inner().connection(), &item_id).await.unwrap_or(item.clone());
                         compact
-                            .update_item_status(&item_id, new_item.status().await.unwrap());
+                            .update_item_status(&item_id, new_item.status().await.unwrap_or(Status::Active));
                         Some(())
                     }
                     _ = cleanup.recv() => {
