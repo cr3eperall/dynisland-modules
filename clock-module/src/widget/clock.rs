@@ -183,6 +183,7 @@ impl WidgetImpl for ClockPriv {
 #[allow(clippy::new_without_default)]
 impl Clock {
     /// registered properties:
+    /// * `time`: `chrono::DateTime<chrono::Local>`
     pub fn new(dynamic_activity: &mut DynamicActivity) -> Self {
         let this: Self = Object::builder().build();
         this.add_css_class("clock");

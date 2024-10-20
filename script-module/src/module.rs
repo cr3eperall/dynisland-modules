@@ -22,6 +22,7 @@ use dynisland_core::{
 use env_logger::Env;
 #[cfg(not(feature = "embedded"))]
 use log::Level;
+use nix::unistd::{setpgid, Pid};
 use ron::ser::PrettyConfig;
 use tokio::{
     io::{AsyncBufReadExt, BufReader},
@@ -214,11 +215,17 @@ fn producer(module: &ScriptModule) {
                 return;
             }
 
-            let child = Command::new("sh")
-                .arg("-c")
-                .arg(config.exec)
-                .stdout(Stdio::piped())
-                .spawn();
+            let child = unsafe {
+                Command::new("sh")
+                    .arg("-c")
+                    .arg(config.exec)
+                    .stdout(Stdio::piped())
+                    .pre_exec(|| {
+                        let _ = setpgid(Pid::from_raw(0), Pid::from_raw(0));
+                        Ok(())
+                    })
+                    .spawn()
+            };
             if let Err(err) = child {
                 log::error!("failed to start command: {:?}", err);
                 return;

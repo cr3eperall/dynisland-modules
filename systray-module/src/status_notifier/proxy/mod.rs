@@ -4,9 +4,9 @@
 //! [eww](https://github.com/elkowar/eww/tree/master/crates/notifier_host/src/proxy), which in turn were taken from
 //! [Waybar](https://github.com/Alexays/Waybar/tree/master/protocol), and the proxies were
 //! generated with [zbus-xmlgen](https://docs.rs/crate/zbus_xmlgen/latest) by running
-//! `zbus-xmlgen file dynisland-modules/systray-module/src/proxy/dbus_status_notifier_item.xml`,
-//! `zbus-xmlgen file dynisland-modules/systray-module/src/proxy/dbus_status_notifier_watcher.xml`
-//! `zbus-xmlgen file dynisland-modules/systray-module/src/proxy/dbus_menu.xml`.
+//! `zbus-xmlgen file dynisland-modules/systray-module/src/status_notifier/proxy/dbus_status_notifier_item.xml`,
+//! `zbus-xmlgen file dynisland-modules/systray-module/src/status_notifier/proxy/dbus_status_notifier_watcher.xml`
+//! `zbus-xmlgen file dynisland-modules/systray-module/src/status_notifier/proxy/dbus_menu.xml`.
 //!
 //! Note that the `dbus_status_notifier_watcher.rs` file has been slightly adjusted, the
 //! default arguments to the [proxy](https://docs.rs/zbus/4.4.0/zbus/attr.proxy.html)

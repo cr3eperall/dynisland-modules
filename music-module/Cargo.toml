@@ -26,6 +26,7 @@ serde = { version = "1.0.188", features = ["serde_derive"] }
 env_logger = "0.11.2"
 abi_stable = "0.11.3"
 grass = {version = "0.13.4", default-features = false, features = ["macro"]}
+nix = { version = "0.29.0", features = ["process", "fs"]}
 
 
 mpris = "2.0.1"

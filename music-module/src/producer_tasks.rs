@@ -3,6 +3,7 @@ use std::{process::Stdio, sync::Arc, time::Duration};
 use anyhow::Result;
 use dynisland_core::{abi::log, cast_dyn_any, dynamic_property::DynamicPropertyAny};
 use mpris::{DBusError, TrackID};
+use nix::unistd::{setpgid, Pid};
 use tokio::{
     io::{AsyncBufReadExt, BufReader},
     process::Command,
@@ -27,11 +28,17 @@ pub(crate) async fn visualizer_task(
     mut cleanup: Receiver<UnboundedSender<()>>,
 ) {
     let command = command.to_string();
-    let child = Command::new("sh")
-        .arg("-c")
-        .arg(command)
-        .stdout(Stdio::piped())
-        .spawn();
+    let child = unsafe {
+        Command::new("sh")
+            .arg("-c")
+            .arg(command)
+            .stdout(Stdio::piped())
+            .pre_exec(|| {
+                let _ = setpgid(Pid::from_raw(0), Pid::from_raw(0));
+                Ok(())
+            })
+            .spawn()
+    };
     if let Err(err) = child {
         log::error!("failed to start visualizer command: {:?}", err);
         return;
