@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <template class="PowerMinimalWidget" parent="GtkWidget">
+        <property name="valign">center</property>
+        <property name="halign">center</property>
+        <child>
+            <object class="GtkBox">
+                <property name="valign">center</property>
+                <property name="halign">center</property>
+                <property name="vexpand">false</property>
+                <property name="hexpand">false</property>
+                <property name="overflow">hidden</property>
+                <property name="homogeneous">false</property>
+                <child>
+                    <object class="BatteryWidget" id="battery">
+                        <property name="valign">center</property>
+                        <property name="halign">center</property>
+                        <property name="height-request">40</property>
+                        <property name="width-request">40</property>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </template>
+</interface>

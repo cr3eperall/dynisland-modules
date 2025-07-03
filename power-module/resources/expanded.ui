@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <template class="PowerExpandedWidget" parent="GtkWidget">
+        <property name="valign">center</property>
+        <property name="halign">center</property>
+        <child>
+            <object class="GtkBox">
+                <property name="valign">center</property>
+                <property name="halign">center</property>
+                <property name="vexpand">false</property>
+                <property name="hexpand">false</property>
+                <property name="overflow">hidden</property>
+                <property name="homogeneous">false</property>
+                <child>
+                    <object class="BatteryGraphWidget" id="graph">
+                        <property name="valign">center</property>
+                        <property name="halign">center</property>
+                        <property name="height-request">400</property>
+                        <property name="width-request">400</property>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </template>
+</interface>

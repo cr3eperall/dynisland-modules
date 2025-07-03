@@ -1,0 +1,15 @@
+
+.power-activity{
+    battery-widget{
+        font-size: 14px;
+    }
+    .mode-compact{
+        battery-widget{
+            margin-right: 10px;
+            min-width: 40px;
+        }
+        label {
+            margin: 0px 5px 0px 10px;
+        }
+    }
+}

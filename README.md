@@ -10,11 +10,12 @@
 - [Music](music-module/README.md)
 - [Script](script-module/README.md)
 - [Systray](systray-module/README.md)
+- [Power](power-module/README.md)
 
 ### Planned Modules
 
-- [ ] Battery
 - [ ] Notifications
+- [ ] App launcher
 - [ ] System resources
 
 ### Examples
