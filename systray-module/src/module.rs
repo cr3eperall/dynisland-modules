@@ -72,7 +72,7 @@ pub fn new(app_send: RSender<UIServerCommand>) -> RResult<ModuleType, RBoxError>
         base_module,
         producers_rt,
         config,
-        connection: connection,
+        connection,
         items: Arc::new(Mutex::new(HashMap::new())),
     };
     ROk(SabiModule_TO::from_value(this, TD_CanDowncast))

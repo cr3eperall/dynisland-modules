@@ -84,13 +84,13 @@ impl Minimal {
                 let image_type = cast_dyn_any!(value, ImageType).unwrap();
                 match image_type {
                     ImageType::Texture(tex) => {
-                        image.set_from_paintable(Some(tex));
+                        image.set_paintable(Some(tex));
                     }
                     ImageType::File(path) => {
                         image.set_from_file(Some(path));
                     }
                     ImageType::Icon(name) => {
-                        image.set_from_icon_name(Some(name));
+                        image.set_icon_name(Some(name));
                     }
                 }
             })
