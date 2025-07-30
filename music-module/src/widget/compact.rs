@@ -29,9 +29,8 @@ glib::wrapper! {
     @extends gtk::Widget;
 }
 
-#[derive(CompositeTemplate, Default, Properties)]
+#[derive(CompositeTemplate, Default)]
 #[template(resource = "/com/github/cr3eperall/dynislandModules/musicModule/compact.ui")]
-#[properties(wrapper_type = Compact)]
 pub struct CompactPriv {
     #[template_child]
     pub image: TemplateChild<gtk::Image>,
