@@ -1,8 +1,4 @@
-use std::{
-    collections::HashMap,
-    rc::Rc,
-    time::Duration,
-};
+use std::{collections::HashMap, rc::Rc, time::Duration};
 
 use anyhow::Context;
 use dynisland_core::{
@@ -17,8 +13,7 @@ use dynisland_core::{
                 RString,
             },
         },
-        gdk,
-        glib,
+        gdk, glib,
         gtk::{self, prelude::*},
         log,
         module::{ActivityIdentifier, ModuleType, SabiModule, SabiModule_TO, UIServerCommand},
@@ -37,11 +32,7 @@ use zbus::{zvariant::OwnedObjectPath, Connection};
 
 use crate::{
     config::{DePowerConfigMain, PowerConfig, PowerConfigMain},
-    upower::{
-        self,
-        device::Device,
-        proxy::device::DeviceProxyBlocking,
-    },
+    upower::{self, device::Device, proxy::device::DeviceProxyBlocking},
     NAME,
 };
 

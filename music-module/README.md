@@ -28,6 +28,8 @@ Everything from compact mode plus the artist name and controls
 
 - `use_fallback_player`: If the preferred player is not available, use the next available player, if it's set to `false`, it will remove the widget if the preferred one is not available. (if the preferred player is `""`, this will be ignored)
 
+- `compact_artist_mode`: Show the artist name in compact mode, it can be `Bottom`,`Leading`,`Trailing` or `None`.
+
 ### Multiple widgets definitions
 
 - `windows`: A map of window names to vector of configuration.

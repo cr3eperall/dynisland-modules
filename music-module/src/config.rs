@@ -4,7 +4,15 @@ use dynisland_core::{
     abi::module::ActivityIdentifier,
     d_macro::{MultiWidgetConfig, OptDeserializeConfig},
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Serialize, Clone, Deserialize)]
+pub enum ArtistMode {
+    Leading,
+    Trailing,
+    Bottom,
+    None,
+}
 
 #[derive(Debug, Serialize, Clone, MultiWidgetConfig, OptDeserializeConfig)]
 #[serde(default)]
@@ -14,6 +22,7 @@ pub struct MusicConfig {
     pub(crate) scrolling_label_speed: f32,
     pub(crate) cava_visualizer_script: String,
     pub(crate) use_fallback_player: bool,
+    pub(crate) compact_artist_mode: ArtistMode,
 }
 #[allow(clippy::derivable_impls)]
 impl Default for MusicConfig {
@@ -24,6 +33,7 @@ impl Default for MusicConfig {
             scrolling_label_speed: 30.0,
             cava_visualizer_script: String::from("echo 0,0,0,0,0,0"),
             use_fallback_player: true,
+            compact_artist_mode: ArtistMode::None,
         }
     }
 }

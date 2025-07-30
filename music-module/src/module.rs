@@ -240,12 +240,15 @@ fn producer(module: &MusicModule) {
 
         // set configs
         let scrolling_label_speed = act_lock.get_property_any("scrolling-label-speed").unwrap();
+        let compact_artist_mode = act_lock.get_property_any("artist-mode").unwrap();
+        let mode = config.compact_artist_mode.clone();
         rt.handle().spawn(async move {
             scrolling_label_speed
                 .lock()
                 .await
                 .set(config.scrolling_label_speed)
                 .unwrap();
+            compact_artist_mode.lock().await.set(mode).unwrap();
         });
 
         let (player_change_tx, _) =

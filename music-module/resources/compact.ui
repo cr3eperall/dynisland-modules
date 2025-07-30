@@ -34,17 +34,50 @@
                     </object>
                 </child>
                 <child>
-                    <object class="ScrollingLabel" id="song_name">
+                    <object class="GtkBox" id="info_names1">
                         <style>
-                            <class name="song-name" />
+                            <class name="info-names1" />
                         </style>
-                        <property name="halign">start</property>
-                        <property name="valign">center</property>
-                        <property name="width-request">168</property>
-                        <property name="max-width">168</property>
+                        <property name="orientation">vertical</property>
                         <property name="height-request">40</property>
+                        <property name="width-request">168</property>
+                        <property name="valign">center</property>
+                        <property name="halign">start</property>
+                        <property name="vexpand">false</property>
                         <property name="hexpand">false</property>
-                        <property name="config-scroll-speed">20.0</property>
+                        <property name="homogeneous">false</property>
+                        <child>
+                            <object class="ScrollingLabel" id="song_name">
+                                <style>
+                                    <class name="song-name" />
+                                </style>
+                                <property name="halign">start</property>
+                                <property name="valign">center</property>
+                                <property name="width-request">168</property>
+                                <property name="max-width">168</property>
+                                <property name="height-request">25</property>
+                                <property name="hexpand">false</property>
+                                <property name="vexpand">true</property>
+                                <property name="config-scroll-speed">20.0</property>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkLabel" id="artist_name">
+                                <style>
+                                    <class name="artist-name" />
+                                </style>
+                                <property name="label">Artist Name</property>
+                                <property name="halign">start</property>
+                                <property name="valign">center</property>
+                                <property name="wrap">false</property>
+                                <property name="width-request">168</property>
+                                <property name="height-request">15</property>
+                                <property name="ellipsize">end</property>
+                                <property name="hexpand">true</property>
+                                <property name="vexpand">false</property>
+                                <property name="xalign">0</property>
+                            </object>
+                        </child>
                     </object>
                 </child>
                 <child>

@@ -19,6 +19,8 @@ use glib::{subclass::types::ObjectSubclassIsExt, Bytes};
 use gtk::{prelude::*, GestureClick};
 use minimal::Minimal;
 
+use crate::config::ArtistMode;
+
 pub enum UIAction {
     Shuffle,
     Previous,
@@ -81,6 +83,8 @@ pub fn get_activity(
     activity_widget.set_compact_mode_widget(compact.clone());
     activity_widget.set_expanded_mode_widget(expanded.clone());
 
+    setup_artist_mode(&mut activity, &compact);
+
     setup_music_metadata_prop(&mut activity, &compact, &expanded);
 
     setup_album_art_prop(&mut activity, &minimal, &compact, &expanded);
@@ -98,6 +102,25 @@ pub fn get_activity(
     register_mode_gestures(activity_widget);
 
     activity
+}
+
+fn setup_artist_mode(activity: &mut DynamicActivity, compact: &Compact) {
+    activity
+        .add_dynamic_property("artist-mode", ArtistMode::None)
+        .unwrap();
+    {
+        let cp = compact.clone();
+        activity
+            .subscribe_to_property("artist-mode", move |new_value| {
+                let mode = cast_dyn_any!(new_value, ArtistMode).unwrap();
+                if matches!(mode, ArtistMode::Bottom) {
+                    cp.imp().artist_name.set_visible(true);
+                } else {
+                    cp.imp().artist_name.set_visible(false);
+                }
+            })
+            .unwrap();
+    }
 }
 
 fn register_mode_gestures(activity_widget: ActivityWidget) {
@@ -382,12 +405,30 @@ fn setup_music_metadata_prop(
         let song_name_widget = expanded.imp().song_name.clone();
         let artist_name_widget = expanded.imp().artist_name.clone();
         let compact_song_name_widget = compact.imp().song_name.clone();
+        let compact_artist_name_widget = compact.imp().artist_name.clone();
+        let mode = activity.get_property_any("artist-mode").unwrap();
         activity
             .subscribe_to_property("music-metadata", move |new_value| {
                 let (song_name, artist_name) = cast_dyn_any!(new_value, (String, String)).unwrap();
                 song_name_widget.set_text(song_name.as_str());
                 artist_name_widget.set_label(artist_name);
-                compact_song_name_widget.set_text(song_name.as_str());
+                compact_artist_name_widget.set_text(artist_name.as_str());
+                let mode = cast_dyn_any!(mode.blocking_lock().get(), ArtistMode)
+                    .unwrap()
+                    .clone();
+                let text;
+                match mode {
+                    ArtistMode::Leading => {
+                        text = format!("{} - {}", artist_name, song_name);
+                    }
+                    ArtistMode::Trailing => {
+                        text = format!("{} - {}", song_name, artist_name);
+                    }
+                    _ => {
+                        text = song_name.to_string();
+                    }
+                }
+                compact_song_name_widget.set_text(text.as_str());
             })
             .unwrap();
     }

@@ -3,9 +3,7 @@ use std::cell::RefCell;
 use dynisland_core::{
     abi::{
         glib,
-        gtk::{
-            self, EventControllerScroll, EventControllerScrollFlags,
-        },
+        gtk::{self, EventControllerScroll, EventControllerScrollFlags},
     },
     cast_dyn_any,
     dynamic_activity::DynamicActivity,

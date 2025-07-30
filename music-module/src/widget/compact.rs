@@ -1,5 +1,8 @@
 use dynisland_core::{
-    abi::{glib, gtk},
+    abi::{
+        glib::{self, Properties},
+        gtk,
+    },
     graphics::widgets::scrolling_label::ScrollingLabel,
 };
 use glib::{
@@ -26,13 +29,16 @@ glib::wrapper! {
     @extends gtk::Widget;
 }
 
-#[derive(CompositeTemplate, Default)]
+#[derive(CompositeTemplate, Default, Properties)]
 #[template(resource = "/com/github/cr3eperall/dynislandModules/musicModule/compact.ui")]
+#[properties(wrapper_type = Compact)]
 pub struct CompactPriv {
     #[template_child]
     pub image: TemplateChild<gtk::Image>,
     #[template_child]
     pub song_name: TemplateChild<ScrollingLabel>,
+    #[template_child]
+    pub artist_name: TemplateChild<gtk::Label>,
 }
 
 #[glib::object_subclass]

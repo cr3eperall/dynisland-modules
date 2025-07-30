@@ -285,7 +285,7 @@ impl Device {
         result.reverse();
         Ok(result)
     }
-    
+
     #[allow(dead_code)]
     pub async fn get_statistics(
         &self,

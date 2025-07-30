@@ -1,7 +1,4 @@
-use std::{
-    cell::RefCell,
-    str::FromStr,
-};
+use std::{cell::RefCell, str::FromStr};
 
 use chrono::{DateTime, Days, Local, Timelike};
 use dynisland_core::abi::{gdk, glib, gtk, log};
