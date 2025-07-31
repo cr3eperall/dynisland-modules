@@ -250,7 +250,18 @@ fn producer(module: &MusicModule) {
         );
 
         // set configs
-        config.apply_to(&act);
+        let scrolling_label_speed = act_lock.get_property_any("scrolling-label-speed")
+            .unwrap();
+        let compact_artist_mode = act_lock.get_property_any("artist-mode")
+            .unwrap();
+        scrolling_label_speed
+            .blocking_lock()
+            .set(config.scrolling_label_speed)
+            .unwrap();
+        compact_artist_mode
+            .blocking_lock()
+            .set(config.compact_artist_mode.clone())
+            .unwrap();
 
         let (player_change_tx, _) =
             tokio::sync::broadcast::channel::<(MprisPlayer, UnboundedSender<Duration>)>(4);
