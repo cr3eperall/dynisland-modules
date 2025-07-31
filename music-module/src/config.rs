@@ -1,10 +1,12 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 
 use dynisland_core::{
     abi::module::ActivityIdentifier,
     d_macro::{MultiWidgetConfig, OptDeserializeConfig},
+    dynamic_activity::DynamicActivity,
 };
 use serde::{Deserialize, Serialize};
+use tokio::sync::Mutex;
 
 #[derive(Debug, Serialize, Clone, Deserialize)]
 pub enum ArtistMode {
@@ -82,4 +84,25 @@ pub fn acitvities_to_update<'a>(
         }
     }
     (to_remove, to_add)
+}
+
+impl MusicConfig {
+    pub fn apply_to(&self, dyn_act: &Rc<Mutex<DynamicActivity>>) {
+        let scrolling_label_speed = dyn_act
+            .blocking_lock()
+            .get_property_any("scrolling-label-speed")
+            .unwrap();
+        let compact_artist_mode = dyn_act
+            .blocking_lock()
+            .get_property_any("artist-mode")
+            .unwrap();
+        scrolling_label_speed
+            .blocking_lock()
+            .set(self.scrolling_label_speed)
+            .unwrap();
+        compact_artist_mode
+            .blocking_lock()
+            .set(self.compact_artist_mode.clone())
+            .unwrap();
+    }
 }

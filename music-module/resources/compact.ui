@@ -66,6 +66,7 @@
                                 <style>
                                     <class name="artist-name" />
                                 </style>
+                                <property name="visible">false</property>
                                 <property name="label">Artist Name</property>
                                 <property name="halign">start</property>
                                 <property name="valign">center</property>

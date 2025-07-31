@@ -24,9 +24,8 @@ use gtk::{
     BinLayout, CompositeTemplate, TemplateChild,
 };
 
-use crate::upower;
-
 use super::battery::Battery;
+use crate::upower;
 
 glib::wrapper! {
     pub struct Compact(ObjectSubclass<CompactPriv>)

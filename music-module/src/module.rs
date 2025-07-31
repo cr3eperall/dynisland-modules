@@ -185,6 +185,7 @@ fn producer(module: &MusicModule) {
     let registered_activities = module.base_module.registered_activities();
     let (register_tx, mut register_rx) =
         tokio::sync::mpsc::unbounded_channel::<(ActivityIdentifier, bool)>();
+    let conf = config.clone();
     glib::MainContext::default().spawn_local(async move {
         while let Some((activity_id, register)) = register_rx.recv().await {
             let dyn_act = match activity_map.get(&activity_id) {
@@ -210,6 +211,16 @@ fn producer(module: &MusicModule) {
                         continue;
                     }
                     reg_act_lock.insert_activity(dyn_act.clone()).unwrap();
+                    let conf_idx = get_conf_idx(&activity_id);
+                    let config = conf.get_for_window(
+                        activity_id
+                            .metadata()
+                            .window_name()
+                            .unwrap_or_default()
+                            .as_str(),
+                        conf_idx,
+                    );
+                    config.apply_to(dyn_act);
                 }
             } else {
                 if reg_act_lock.get_activity(activity_id.activity()).is_ok() {
@@ -239,17 +250,7 @@ fn producer(module: &MusicModule) {
         );
 
         // set configs
-        let scrolling_label_speed = act_lock.get_property_any("scrolling-label-speed").unwrap();
-        let compact_artist_mode = act_lock.get_property_any("artist-mode").unwrap();
-        let mode = config.compact_artist_mode.clone();
-        rt.handle().spawn(async move {
-            scrolling_label_speed
-                .lock()
-                .await
-                .set(config.scrolling_label_speed)
-                .unwrap();
-            compact_artist_mode.lock().await.set(mode).unwrap();
-        });
+        config.apply_to(&act);
 
         let (player_change_tx, _) =
             tokio::sync::broadcast::channel::<(MprisPlayer, UnboundedSender<Duration>)>(4);

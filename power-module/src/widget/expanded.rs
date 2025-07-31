@@ -27,9 +27,8 @@ use gtk::{
     BinLayout, CompositeTemplate, TemplateChild,
 };
 
-use crate::upower::device::HistoryEntry;
-
 use super::{battery::Battery, graph::Graph};
+use crate::upower::device::HistoryEntry;
 
 glib::wrapper! {
     pub struct Expanded(ObjectSubclass<ExpandedPriv>)

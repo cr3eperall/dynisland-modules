@@ -246,6 +246,7 @@ fn producer(module: &PowerModule) {
     let registered_activities = module.base_module.registered_activities();
     let (register_tx, mut register_rx) =
         tokio::sync::mpsc::unbounded_channel::<(ActivityIdentifier, bool)>();
+    let conf = config.clone();
     glib::MainContext::default().spawn_local(async move {
         while let Some((activity_id, register)) = register_rx.recv().await {
             let dyn_act = match activity_map.get(&activity_id) {
@@ -271,6 +272,15 @@ fn producer(module: &PowerModule) {
                         continue;
                     }
                     reg_act_lock.insert_activity(dyn_act.clone()).unwrap();
+                    let config = conf.get_for_window(
+                        activity_id
+                            .metadata()
+                            .window_name()
+                            .unwrap_or_default()
+                            .as_str(),
+                        get_conf_idx(&activity_id),
+                    );
+                    config.apply_to(dyn_act);
                 }
             } else {
                 if reg_act_lock.get_activity(activity_id.activity()).is_ok() {

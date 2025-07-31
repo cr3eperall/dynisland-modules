@@ -1,8 +1,5 @@
 use dynisland_core::{
-    abi::{
-        glib::{self, Properties},
-        gtk,
-    },
+    abi::{glib, gtk},
     graphics::widgets::scrolling_label::ScrollingLabel,
 };
 use glib::{
