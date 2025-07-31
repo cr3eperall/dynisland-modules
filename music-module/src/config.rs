@@ -9,10 +9,15 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 
 #[derive(Debug, Serialize, Clone, Deserialize)]
+#[serde(tag = "ArtistMode")]
 pub enum ArtistMode {
+    #[serde(alias = "leading")]
     Leading,
+    #[serde(alias = "trailing")]
     Trailing,
+    #[serde(alias = "centered")]
     Bottom,
+    #[serde(alias = "none")]
     None,
 }
 
