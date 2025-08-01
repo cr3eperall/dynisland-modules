@@ -28,7 +28,7 @@ Everything from compact mode plus the artist name and controls
 
 - `use_fallback_player`: If the preferred player is not available, use the next available player, if it's set to `false`, it will remove the widget if the preferred one is not available. (if the preferred player is `""`, this will be ignored)
 
-- `compact_artist_mode`: Show the artist name in compact mode, it can be `Bottom`,`Leading`,`Trailing` or `None`.
+- `compact_artist_mode`: Show the artist name in compact mode, it can be `("Bottom")`,`("Leading")`,`("Trailing")` or `("None")`.
 
 ### Multiple widgets definitions
 
@@ -44,7 +44,8 @@ windows: {
             use_fallback_player: true,
             default_album_art_url: "file:///path/to/image.png",
             scrolling_label_speed: 30,
-            cava_visualizer_script: "cava -p ~/.config/dynisland/scripts/cava-config | awk '{print substr($0, 1, length($0)-1); fflush()}'"
+            cava_visualizer_script: "cava -p ~/.config/dynisland/scripts/cava-config | awk '{print substr($0, 1, length($0)-1); fflush()}'",
+            compact_artist_mode: ("Bottom")
         ),
     ],
     "secondary_monitor": [
@@ -54,6 +55,9 @@ windows: {
         (
             preferred_player: "spotify",
             use_fallback_player: false,
+            compact_artist_mode: (
+                ArtistMode: "Trailing",
+            ),
         ),
     ]
 }
